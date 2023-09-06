@@ -53,4 +53,14 @@ public class EventInformation
 
         systemCriticality = criticality_indicator;
     }
+
+    /* Get the corresponding state according to the information */
+    public String getState() {
+        if (this.spin)
+            return "spinning";
+        else if (this.isAccessGlobalResource || this.isAccessLocalResource)
+            return "access-resource";
+        else
+            return "normal-execution";
+    }
 }

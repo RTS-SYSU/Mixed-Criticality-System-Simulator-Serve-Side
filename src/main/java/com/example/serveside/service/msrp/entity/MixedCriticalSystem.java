@@ -1,11 +1,13 @@
 package com.example.serveside.service.msrp.entity;
 
+import com.example.serveside.response.GanttInformation;
 import com.example.serveside.service.msrp.generatorTools.SimpleSystemGenerator;
 import com.example.serveside.service.msrp.utils.ShowEventInformation;
 import com.example.serveside.service.msrp.utils.ShowTaskStates;
 import com.example.serveside.service.msrp.entity.SingleTaskState.TASK_STATE;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class MixedCriticalSystem {
@@ -94,6 +96,9 @@ public class MixedCriticalSystem {
     /* Store states for each task. */
     public static ArrayList<TaskStateInformation> taskStates;
 
+    /* The time axis length*/
+    public static Integer timeAxisLength;
+
     public static void main(String[] args)
     {
         SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(MIN_PERIOD, MAX_PERIOD, TOTAL_CPU_CORE_NUM,
@@ -141,6 +146,40 @@ public class MixedCriticalSystem {
         /* Start running. */
         SystemExecute();
 
+    }
+
+    /* Calculate the time axis length */
+    public static void CalculateTimeAxisLength()
+    {
+        timeAxisLength = 0;
+        for (ArrayList<EventInformation> eventRecord : eventRecords)
+            timeAxisLength = Math.max(timeAxisLength, eventRecord.get(eventRecord.size() - 1).endTime);
+        timeAxisLength += 1;
+    }
+
+    public static List<GanttInformation> PackageInformation()
+    {
+//        get the timeAxisLength
+        CalculateTimeAxisLength();
+
+//        package the event information
+        List<GanttInformation> ganttInformations = new ArrayList<>();
+
+        for (ArrayList<EventInformation> eventRecord : eventRecords)
+        {
+            List<com.example.serveside.response.EventInformation> eventInformations = new ArrayList<>();
+            for (EventInformation eventInformation : eventRecord)
+            {
+//                the cpu is spare, skip off
+                if (eventInformation.staticTaskId == -1 && eventInformation.dynamicTaskId == -1)
+                    continue;
+                eventInformations.add(new com.example.serveside.response.EventInformation(eventInformation.staticTaskId, eventInformation.dynamicTaskId, eventInformation.getState(), eventInformation.startTime, eventInformation.endTime));
+            }
+
+            ganttInformations.add(new GanttInformation(eventInformations, timeAxisLength));
+        }
+
+        return ganttInformations;
     }
 
     public static void SystemExecute()

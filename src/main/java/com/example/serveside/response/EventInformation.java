@@ -1,6 +1,6 @@
 package com.example.serveside.response;
 
-public class TaskInformation {
+public class EventInformation {
     /* 静态 Pid */
     private Integer staticPid;
 
@@ -17,7 +17,7 @@ public class TaskInformation {
     private Integer endTime;
 
     /* 构造函数 */
-    public TaskInformation(Integer staticPid, Integer dynamicPid, String state, Integer startTime, Integer endTime)
+    public EventInformation(Integer staticPid, Integer dynamicPid, String state, Integer startTime, Integer endTime)
     {
         this.staticPid = staticPid;
         this.dynamicPid = dynamicPid;
