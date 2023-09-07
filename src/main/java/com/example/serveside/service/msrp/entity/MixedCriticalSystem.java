@@ -149,6 +149,11 @@ public class MixedCriticalSystem {
         // initialize the clock
         systemClock = 0;
 
+        // Initialize the releaseTaskNum:
+        releaseTaskNum = 0;
+        // Initialize the criticality_indicator: low criticality
+        criticality_indicator = 0;
+
         // record the times of the task that has been finished.
         taskFinishTimes = new int[totalTasks.size()];
 
