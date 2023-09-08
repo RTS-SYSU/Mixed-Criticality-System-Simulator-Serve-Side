@@ -157,7 +157,6 @@ public class MixedCriticalSystem {
         timeAxisLength = 0;
         for (ArrayList<EventInformation> eventRecord : eventRecords)
             timeAxisLength = Math.max(timeAxisLength, eventRecord.get(eventRecord.size() - 1).endTime);
-        timeAxisLength += 1;
     }
 
     public static List<GanttInformation> PackageInformation()
@@ -280,6 +279,15 @@ public class MixedCriticalSystem {
         for (int taskFinishTime : taskFinishTimes)
             if (taskFinishTime == 0)
                 return false;
+
+        // All tasks have been executed once. We need to end the running task's state.
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
+            ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+            if (runningTask == null)
+                continue;
+            ModifyRunningEvent(i, runningTask);
+        }
 
         return true;
     }
@@ -446,6 +454,9 @@ public class MixedCriticalSystem {
                 if (runningTask.computeAndSpinTime > runningTask.WCCT_low && criticality_indicator == 0) {
                     criticality_indicator = 1;
                     ModifyIndicatorEvent(runningTask, false);
+
+                    for (ArrayList<CPUEventTimePoint> cpuEventTimePoints : CPUEventTimePointsRecords)
+                        cpuEventTimePoints.add(new CPUEventTimePoint(systemClock, -1, -1, "criticality-switch"));
                 }
             }
 
@@ -513,7 +524,7 @@ public class MixedCriticalSystem {
                 ModifyRunningEvent(i, null);
                 runningTaskState.killTask(systemClock);
 
-                // Killed a low critical task.
+                // Killed a low critical task(Show in cpu gantt chart).
                 CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "killed"));
             }
         }
