@@ -26,6 +26,15 @@ public class EventInformation {
         this.endTime = endTime;
     }
 
+    public EventInformation(com.example.serveside.service.msrp.entity.EventInformation eventInformation)
+    {
+        this.staticPid = eventInformation.staticTaskId;
+        this.dynamicPid = eventInformation.dynamicTaskId;
+        this.state = eventInformation.getState();
+        this.startTime = eventInformation.startTime;
+        this.endTime = eventInformation.endTime;
+    }
+
     public Integer getStaticPid() {
         return this.staticPid;
     }

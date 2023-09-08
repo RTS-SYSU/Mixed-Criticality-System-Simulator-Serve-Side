@@ -87,6 +87,9 @@ public class MixedCriticalSystem {
     /* Save the EventInformation. */
     public static ArrayList<ArrayList<EventInformation>> eventRecords;
 
+    /* Save the time point that the event occurs. */
+    public static ArrayList<ArrayList<CPUEventTimePoint>> CPUEventTimePointsRecords;
+
     /* Keep the running event. */
     public static ArrayList<EventInformation> runningEvents;
 
@@ -165,18 +168,28 @@ public class MixedCriticalSystem {
 //        package the event information
         List<GanttInformation> ganttInformations = new ArrayList<>();
 
-        for (ArrayList<EventInformation> eventRecord : eventRecords)
+        for (int i = 0; i < eventRecords.size(); ++i)
         {
+            ArrayList<EventInformation> eventRecord = eventRecords.get(i);
+            ArrayList<CPUEventTimePoint> CPUEventTimePointRecord = CPUEventTimePointsRecords.get(i);
+
+            // record event information
             List<com.example.serveside.response.EventInformation> eventInformations = new ArrayList<>();
             for (EventInformation eventInformation : eventRecord)
             {
-//                the cpu is spare, skip off
+                // the cpu is spare, skip off
                 if (eventInformation.staticTaskId == -1 && eventInformation.dynamicTaskId == -1)
                     continue;
-                eventInformations.add(new com.example.serveside.response.EventInformation(eventInformation.staticTaskId, eventInformation.dynamicTaskId, eventInformation.getState(), eventInformation.startTime, eventInformation.endTime));
+                eventInformations.add(new com.example.serveside.response.EventInformation(eventInformation));
             }
 
-            ganttInformations.add(new GanttInformation(eventInformations, timeAxisLength));
+            // record event time point.
+            List<com.example.serveside.response.CPUEventTimePoint> cpuEventTimePoints = new ArrayList<>();
+            for (CPUEventTimePoint cpuEventTimePoint : CPUEventTimePointRecord)
+            {
+                cpuEventTimePoints.add(new com.example.serveside.response.CPUEventTimePoint(cpuEventTimePoint));
+            }
+            ganttInformations.add(new GanttInformation(eventInformations, cpuEventTimePoints, timeAxisLength));
         }
 
         return ganttInformations;
@@ -229,6 +242,11 @@ public class MixedCriticalSystem {
             newEvent.startTime = systemClock;
             runningEvents.add(newEvent);
         }
+
+        /* Initialize the CPUEventTimePointsRecords. */
+        CPUEventTimePointsRecords = new ArrayList<>();
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+            CPUEventTimePointsRecords.add(new ArrayList<>());
 
         /* Initialize the task states array. */
         taskStates = new ArrayList<>();
@@ -341,6 +359,9 @@ public class MixedCriticalSystem {
                             tsi.addState(TASK_STATE.INDIRECT_SPIN, systemClock, requestResource.id);
                         }
                     }
+
+                    // Event: Wait for a resource, record the event time point.
+                    CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "lock-attempt", requestResourceIndex));
                 }
                 // unoccupied, get it
                 else {
@@ -359,6 +380,9 @@ public class MixedCriticalSystem {
                     runningTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, requestResource.id);
                     runningTaskState.resourceId = requestResource.id;
                     runningTaskState.remainResourceComputationTime = runningTask.remainResourceComputationTime;
+
+                    // Event: Get a resource, record the event time point.
+                    CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", requestResourceIndex));
                 }
             }
 
@@ -381,6 +405,9 @@ public class MixedCriticalSystem {
                 runningTaskState.remainResourceComputationTime = runningTask.remainResourceComputationTime;
 
                 runningTask.systemCriticalityWhenAccessResource = criticality_indicator;
+
+                // Event: Get a resource, record the event time point.
+                CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", requestResourceIndex));
             }
             // record old event and create a new one
             ModifyRunningEvent(i, runningTask);
@@ -420,15 +447,6 @@ public class MixedCriticalSystem {
                     criticality_indicator = 1;
                     ModifyIndicatorEvent(runningTask, false);
                 }
-
-                // if low task without resource at high system, end it directly
-                if (runningTask.criticality < criticality_indicator) {
-                    ++taskFinishTimes[runningTask.staticTaskId];
-                    runningTaskPerCore.set(i, null);
-                    ModifyRunningEvent(i, null);
-                    runningTaskState.killTask(systemClock);
-                    continue;
-                }
             }
 
             // if the task is accessing a resource, reduce its needed resource computation time.
@@ -445,15 +463,6 @@ public class MixedCriticalSystem {
 
                     // add runningTask to array, Free the use of resource after loop
                     ReleaseResourceTask.set(i, runningTask);
-
-                    // if low task with resource at high system, end it after it released resource
-                    if(runningTask.criticality < criticality_indicator){
-                        ++taskFinishTimes[runningTask.staticTaskId];
-                        runningTaskPerCore.set(i, null);
-                        ModifyRunningEvent(i, null);
-                        runningTaskState.killTask(systemClock);
-                        continue;
-                    }
                 }
             }
 
@@ -462,7 +471,7 @@ public class MixedCriticalSystem {
             if (runningTask.executedTime >= runningTask.totalNeededTime)
             {
                 // if task is accessing resource, wait until the resource accessing complete
-                if ((runningTask.isAccessGlobalResource || runningTask.isAccessLocalResource) && runningTask.remainResourceComputationTime > 0)
+                if (runningTask.isAccessGlobalResource || runningTask.isAccessLocalResource)
                     continue;
                 // The task has been finished again.
                 ++taskFinishTimes[runningTask.staticTaskId];
@@ -475,16 +484,37 @@ public class MixedCriticalSystem {
                 // end previous state
                 runningTaskState.endState(systemClock);
                 runningTaskState.live = false;
+
+                // Complete the execution of a task.
+                CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "completion"));
             }
         }
 
-        // ReleaseResource after loop to avoid bug
-        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i) {
+        // ReleaseResource and shutdown low priority task after loop to avoid bug
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
             if (ReleaseResourceTask.get(i) != null) {
                 ReleaseResource(ReleaseResourceTask.get(i));
                 // Finish the event and create a new event.
                 ModifyRunningEvent(i, ReleaseResourceTask.get(i));
                 ReleaseResourceTask.set(i, null);
+            }
+
+            ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+            // The CPU is spare, skip off it.
+            if (runningTask == null)
+                continue;
+            TaskStateInformation runningTaskState = taskStates.get(runningTask.dynamicTaskId - 1);
+
+            // if low task without resource at high system, end it directly
+            if (runningTask.criticality < criticality_indicator && !runningTask.isAccessGlobalResource && !runningTask.isAccessLocalResource) {
+                ++taskFinishTimes[runningTask.staticTaskId];
+                runningTaskPerCore.set(i, null);
+                ModifyRunningEvent(i, null);
+                runningTaskState.killTask(systemClock);
+
+                // Killed a low critical task.
+                CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "killed"));
             }
         }
 
@@ -513,6 +543,9 @@ public class MixedCriticalSystem {
         //get the id of resource which is need to be released
         int resource_id = runningTask.accessResourceIndex.get(runningTask.requestResourceTh);
         Resource resource = totalResources.get(resource_id);
+
+        // Release the resource
+        CPUEventTimePointsRecords.get(runningTask.runningCpuCore).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "unlocked", resource_id));
 
         //1 reset some parameter of resource
         resource.isOccupied = false;          //now it is free
@@ -560,6 +593,9 @@ public class MixedCriticalSystem {
 
             // End the new task's old event and create a new event.
             ModifyRunningEvent(n_task.runningCpuCore, n_task);
+
+            // Get a resource:
+            CPUEventTimePointsRecords.get(n_task.runningCpuCore).add(new CPUEventTimePoint(systemClock, runningTask.staticTaskId, runningTask.dynamicTaskId, "lock", resource_id));
 
             // record task state
             TaskStateInformation waitingTaskState = taskStates.get(n_task.dynamicTaskId - 1);
@@ -665,6 +701,9 @@ public class MixedCriticalSystem {
                 else
                     runningTaskState.addState(TASK_STATE.RUNNING, systemClock);
 
+                // Add switch-task event.
+                CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task"));
+
                 continue;
             }
 
@@ -702,6 +741,9 @@ public class MixedCriticalSystem {
                     modifyTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, modifyTaskState.resourceId);
                 else
                     modifyTaskState.addState(TASK_STATE.RUNNING, systemClock);
+
+                // Add switch-task event.
+                CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task"));
             }
 
             // running task is access local resource and priority is lower.
@@ -730,6 +772,9 @@ public class MixedCriticalSystem {
                     modifyTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, modifyTaskState.resourceId);
                 else
                     modifyTaskState.addState(TASK_STATE.RUNNING, systemClock);
+
+                // Add switch-task event.
+                CPUEventTimePointsRecords.get(i).add(new CPUEventTimePoint(systemClock, waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task"));
             }
         }
     }

@@ -1,6 +1,6 @@
 package com.example.serveside.response;
 
-public class EventTimePoint {
+public class CPUEventTimePoint {
     /* 静态 Pid */
     private Integer staticPid;
 
@@ -13,13 +13,26 @@ public class EventTimePoint {
     /* 事件发生的时间点 */
     private Integer eventTime;
 
+    /* 访问/释放的资源 ID */
+    private Integer resourceId;
+
     /* 构造函数 */
-    public EventTimePoint(Integer staticPid, Integer dynamicPid, String event, Integer eventTime)
+    public CPUEventTimePoint(Integer staticPid, Integer dynamicPid, String event, Integer eventTime, Integer resourceId)
     {
         this.staticPid = staticPid;
         this.dynamicPid = dynamicPid;
         this.event = event;
         this.eventTime = eventTime;
+        this.resourceId = resourceId;
+    }
+
+    public CPUEventTimePoint(com.example.serveside.service.msrp.entity.CPUEventTimePoint cpuEventTimePoint)
+    {
+        this.staticPid = cpuEventTimePoint.staticTaskId;
+        this.dynamicPid = cpuEventTimePoint.dynamicTaskId;
+        this.event = cpuEventTimePoint.event;
+        this.eventTime = cpuEventTimePoint.eventTime;
+        this.resourceId = cpuEventTimePoint.resourceId;
     }
 
     public void setStaticPid(Integer staticPid)
@@ -61,4 +74,8 @@ public class EventTimePoint {
     {
         return this.eventTime;
     }
+
+    public Integer getResourceId() { return this.resourceId; }
+
+    public void setResourceId(Integer resourceId) { this.resourceId = resourceId; }
 }
