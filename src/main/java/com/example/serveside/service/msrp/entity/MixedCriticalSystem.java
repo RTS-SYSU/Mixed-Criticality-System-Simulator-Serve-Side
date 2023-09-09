@@ -1,6 +1,5 @@
 package com.example.serveside.service.msrp.entity;
 
-import com.example.serveside.response.GanttInformation;
 import com.example.serveside.service.msrp.generatorTools.SimpleSystemGenerator;
 import com.example.serveside.service.msrp.utils.ShowEventInformation;
 import com.example.serveside.service.msrp.utils.ShowTaskStates;
@@ -102,6 +101,9 @@ public class MixedCriticalSystem {
     /* The time axis length*/
     public static Integer timeAxisLength;
 
+    /* Record the release task's information and send it to client-side. */
+    public static List<TaskInformation> releaseTaskInformationRecords;
+
     public static void main(String[] args)
     {
         SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(MIN_PERIOD, MAX_PERIOD, TOTAL_CPU_CORE_NUM,
@@ -159,13 +161,13 @@ public class MixedCriticalSystem {
             timeAxisLength = Math.max(timeAxisLength, eventRecord.get(eventRecord.size() - 1).endTime);
     }
 
-    public static List<GanttInformation> PackageInformation()
+    public static com.example.serveside.response.ToTalInformation PackageGanttInformation()
     {
 //        get the timeAxisLength
         CalculateTimeAxisLength();
 
-//        package the event information
-        List<GanttInformation> ganttInformations = new ArrayList<>();
+//        package the gantt chart information
+        List<com.example.serveside.response.GanttInformation> ganttInformations = new ArrayList<>();
 
         for (int i = 0; i < eventRecords.size(); ++i)
         {
@@ -188,10 +190,11 @@ public class MixedCriticalSystem {
             {
                 cpuEventTimePoints.add(new com.example.serveside.response.CPUEventTimePoint(cpuEventTimePoint));
             }
-            ganttInformations.add(new GanttInformation(eventInformations, cpuEventTimePoints, timeAxisLength));
+
+            ganttInformations.add(new com.example.serveside.response.GanttInformation(eventInformations, cpuEventTimePoints, timeAxisLength));
         }
 
-        return ganttInformations;
+        return new com.example.serveside.response.ToTalInformation(ganttInformations, releaseTaskInformationRecords);
     }
 
     public static void SystemExecute()
@@ -249,6 +252,9 @@ public class MixedCriticalSystem {
 
         /* Initialize the task states array. */
         taskStates = new ArrayList<>();
+
+        /* Initialize the releaseInformationRecords */
+        releaseTaskInformationRecords = new ArrayList<>();
 
         /* Initialize the indicator records array. */
         indicatorRecords = new ArrayList<>();
@@ -650,6 +656,8 @@ public class MixedCriticalSystem {
                 // this state will be deleted if task running immediately
                 taskStates.get(taskStates.size() - 1).addState(TASK_STATE.ARRIVAL_BLOCK, systemClock + 1);
                 System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
+
+                releaseTaskInformationRecords.add(new TaskInformation(releaseTask, systemClock));
             }else
                 ++timeSinceLastRelease[i];
         }
