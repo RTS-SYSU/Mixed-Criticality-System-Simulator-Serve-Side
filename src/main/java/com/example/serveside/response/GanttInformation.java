@@ -3,16 +3,17 @@ package com.example.serveside.response;
 import java.util.List;
 
 public class GanttInformation {
-    private List<EventInformation> eventInformations;
+    /* 记录事件信息*/
+    private List<com.example.serveside.response.EventInformation> eventInformations;
 
     /* 时间轴长度 */
     private Integer timeAxisLength;
 
-    private List<CPUEventTimePoint> cpuEventTimePoints;
+    private List<EventTimePoint> eventTimePoints;
 
-    public GanttInformation(List<EventInformation> eventInformations, List<CPUEventTimePoint> cpuEventTimePoints, Integer timeAxisLength) {
+    public GanttInformation(List<EventInformation> eventInformations, List<EventTimePoint> eventTimePoints, Integer timeAxisLength) {
         this.eventInformations = eventInformations;
-        this.cpuEventTimePoints = cpuEventTimePoints;
+        this.eventTimePoints = eventTimePoints;
         this.timeAxisLength = timeAxisLength;
     }
 
@@ -20,9 +21,8 @@ public class GanttInformation {
         return this.eventInformations;
     }
 
-    public void setEventInformations(List<EventInformation> eventInformations, List<CPUEventTimePoint> cpuEventTimePoints) {
+    public void setEventInformations(List<EventInformation> eventInformations) {
         this.eventInformations = eventInformations;
-        this.cpuEventTimePoints = cpuEventTimePoints;
     }
 
     public Integer getTimeAxisLength()
@@ -35,7 +35,7 @@ public class GanttInformation {
         this.timeAxisLength = timeAxisLength;
     }
 
-    public List<CPUEventTimePoint> getCpuEventTimePoints() { return this.cpuEventTimePoints; }
+    public List<EventTimePoint> getEventTimePoints() { return this.eventTimePoints; }
 
-    public void setCpuEventTimePoints(List<CPUEventTimePoint> cpuEventTimePoints) { this.cpuEventTimePoints = cpuEventTimePoints; }
+    public void setEventTimePoints(List<EventTimePoint> eventTimePoints) { this.eventTimePoints = eventTimePoints; }
 }

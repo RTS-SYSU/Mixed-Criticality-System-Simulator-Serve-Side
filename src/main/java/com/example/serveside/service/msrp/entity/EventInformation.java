@@ -57,7 +57,7 @@ public class EventInformation
     /* Get the corresponding state according to the information */
     public String getState() {
         if (this.spin)
-            return "spinning";
+            return "direct-spinning";
         else if (this.isAccessGlobalResource || this.isAccessLocalResource)
             return "access-resource";
         else

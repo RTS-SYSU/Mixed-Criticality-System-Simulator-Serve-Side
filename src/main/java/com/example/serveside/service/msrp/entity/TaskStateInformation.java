@@ -44,25 +44,25 @@ class SingleTaskState {
     public String getState() {
         switch (state) {
             case PREEMPTED:
-                return "Preempted";
+                return "preempted";
 
             case ARRIVAL_BLOCK:
-                return "Arrival block";
+                return "arrival-block";
 
             case DIRECT_SPIN:
-                return "Direct spinning for resource " + resourceId;
+                return "direct-spinning";
 
             case INDIRECT_SPIN:
-                return "Indirect spinning for resource " + resourceId;
+                return "indirect-spinning";
 
             case RUNNING:
-                return "Executing without lock";
+                return "normal-execution";
 
             case RUNNING_WITH_LOCK:
-                return "Executing with resource " + resourceId;
+                return "access-resource";
 
             case KILLED:
-                return "Killed";
+                return "killed";
 
             default:
                 return "";
@@ -98,19 +98,6 @@ public class TaskStateInformation {
         resourceId = -1;
         remainResourceComputationTime = 0;
         live = true;
-    }
-
-    public TaskStateInformation(TaskStateInformation copy) {
-        taskStates = new ArrayList<>();
-        staticTaskId = copy.staticTaskId;
-        dynamicTaskId = copy.dynamicTaskId;
-        runningCpuCore = copy.runningCpuCore;
-        priority = copy.priority;
-        resourceId = copy.resourceId;
-        remainResourceComputationTime = copy.remainResourceComputationTime;
-        for (SingleTaskState sts : copy.taskStates) {
-            taskStates.add(new SingleTaskState(sts));
-        }
     }
 
     /* Add a new state for task. */
