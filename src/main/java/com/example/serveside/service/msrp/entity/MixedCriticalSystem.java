@@ -3,7 +3,6 @@ package com.example.serveside.service.msrp.entity;
 import com.example.serveside.response.EventInformation;
 import com.example.serveside.response.EventTimePoint;
 import com.example.serveside.response.GanttInformation;
-import com.example.serveside.response.TaskGanttInformation;
 import com.example.serveside.service.msrp.generatorTools.SimpleSystemGenerator;
 import com.example.serveside.service.msrp.utils.ShowEventInformation;
 import com.example.serveside.service.msrp.utils.ShowTaskStates;
@@ -119,12 +118,15 @@ public class MixedCriticalSystem {
 
         // Generate the tasks that the system need to execute.
         totalTasks = systemGenerator.generateTasks();
+//        totalTasks = systemGenerator.testGenerateTask();
 
         // Generate the resources that the system has.
         totalResources = systemGenerator.generateResources();
+//        totalResources = systemGenerator.testGenerateResources();
 
         // Generate the resource usage, i.e. task access the resource(time, times)
         allocatedTasks = systemGenerator.generateResourceUsage(totalTasks, totalResources);
+//        allocatedTasks = systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
 
         // Print the information about the task.
         for (int i = 0; i < allocatedTasks.size(); ++i)
@@ -165,7 +167,8 @@ public class MixedCriticalSystem {
     {
         timeAxisLength = 0;
         for (ArrayList<com.example.serveside.service.msrp.entity.EventInformation> eventRecord : eventRecords)
-            timeAxisLength = Math.max(timeAxisLength, eventRecord.get(eventRecord.size() - 1).endTime);
+            if (!eventRecord.isEmpty())
+                timeAxisLength = Math.max(timeAxisLength, eventRecord.get(eventRecord.size() - 1).endTime);
     }
 
     public static com.example.serveside.response.ToTalInformation PackageTotalInformation()
@@ -382,15 +385,18 @@ public class MixedCriticalSystem {
                 if(requestResource.isOccupied) {
                     runningTask.spin = true;
                     requestResource.waitingQueue.add(runningTask);
-                    // record task state
+                    // record task state and begin direct spin
                     runningTaskState.priority = Integer.MAX_VALUE;
                     runningTaskState.endState(systemClock);
                     runningTaskState.addState(TASK_STATE.DIRECT_SPIN, systemClock, requestResource.id);
-                    // indirect spin
-                    for (TaskStateInformation tsi : taskStates) {
-                        if (tsi.live && tsi.priority > runningTaskState.priority && tsi.runningCpuCore == runningTaskState.runningCpuCore) {
-                            tsi.endState(systemClock);
-                            tsi.addState(TASK_STATE.INDIRECT_SPIN, systemClock, requestResource.id);
+
+                    // 处理 indirect-spinning delay
+                    for (ProcedureControlBlock waitingTask : waitingTasksPerCore.get(runningTask.runningCpuCore))
+                    {
+                        if (waitingTask.basePriority < runningTask.basePriority)
+                        {
+                            taskStates.get(waitingTask.dynamicTaskId - 1).endState(systemClock);
+                            taskStates.get(waitingTask.dynamicTaskId - 1).addState(TASK_STATE.INDIRECT_SPIN, systemClock);
                         }
                     }
 
@@ -566,6 +572,7 @@ public class MixedCriticalSystem {
                 // Killed a low critical task(Show in cpu gantt chart).
                 CPUEventTimePointsRecords.get(i).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "killed", systemClock, -1));
                 TaskEventTimePointsRecords.get(runningTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "killed", systemClock, -1));
+
             }
         }
 
@@ -617,8 +624,10 @@ public class MixedCriticalSystem {
 
             // if indicator is HI, low task can't be chosen
             while (n_task.criticality < criticality_indicator) {
+                // record: killed
                 ++taskFinishTimes[n_task.staticTaskId];
                 taskStates.get(n_task.dynamicTaskId - 1).killTask(systemClock);
+                TaskEventTimePointsRecords.get(n_task.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(n_task.staticTaskId, n_task.dynamicTaskId, "killed", systemClock, -1));
                 if (resource.waitingQueue.isEmpty())
                     return;
                 n_task = resource.waitingQueue.poll();
@@ -636,6 +645,16 @@ public class MixedCriticalSystem {
             if(resource.isGlobal) {
                 n_task.isAccessGlobalResource=true;
                 n_task.spin = false;
+
+                // 处理 indirect spinning delay
+                for (ProcedureControlBlock waitingTask : waitingTasksPerCore.get(n_task.runningCpuCore))
+                {
+                    if (waitingTask.basePriority < n_task.basePriority)
+                    {
+                        taskStates.get(waitingTask.dynamicTaskId - 1).endState(systemClock);
+                    }
+                }
+
             } else {
                 n_task.isAccessLocalResource=true;
                 n_task.priorities.push(resource.ceiling.get(n_task.runningCpuCore));
@@ -678,7 +697,6 @@ public class MixedCriticalSystem {
                 if (totalTasks.get(i).criticality < criticality_indicator){
                     ++taskFinishTimes[totalTasks.get(i).staticTaskId];
                 }
-
                 // reset
                 timeSinceLastRelease[i] = 0;
                 // initialize the release task and set its pid.
@@ -687,9 +705,6 @@ public class MixedCriticalSystem {
                 waitingTasksPerCore.get(totalTasks.get(i).runningCpuCore).add(releaseTask);
                 // store state information for the release task
                 taskStates.add(new TaskStateInformation(releaseTask.staticTaskId, releaseTask.dynamicTaskId, releaseTask.priorities.peek(), releaseTask.runningCpuCore));
-                // add arrival block when task is released
-                // this state will be deleted if task running immediately
-                taskStates.get(taskStates.size() - 1).addState(TASK_STATE.ARRIVAL_BLOCK, systemClock + 1);
                 System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
 
                 releaseTaskInformationRecords.add(new TaskInformation(releaseTask, systemClock));
@@ -728,8 +743,10 @@ public class MixedCriticalSystem {
 
             // if indicator is HI, low task can't be chosen
             while (waitingTask.criticality < criticality_indicator) {
+                // record :kill
                 ++taskFinishTimes[waitingTask.staticTaskId];
                 taskStates.get(waitingTask.dynamicTaskId - 1).killTask(systemClock);
+                TaskEventTimePointsRecords.get(waitingTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "killed", systemClock, -1));
                 waitingTasks.remove(0);
                 if (waitingTasks.isEmpty())
                     break;
@@ -834,6 +851,26 @@ public class MixedCriticalSystem {
 
                 // Add switch-task event.
                 CPUEventTimePointsRecords.get(i).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task", systemClock, -1));
+            }
+        }
+
+        // 处理 arrival blocking 的状况
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
+            ArrayList<ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(i);
+            ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+
+            for (ProcedureControlBlock waitingTask : waitingTasks)
+            {
+                // runningTask  的优先级比 waitingTask 大，并且 runningTask 还能够执行，说明：
+                // 1. runningTask 正在 spinning
+                // 2. runningTask 正在访问 global resource
+                // 3. runningTask 访问 local resource，但是 runningTask 优先级被短暂提升
+                // 除此之外，我们还需要确保 waitingTask 此前没有执行过
+                if (runningTask.basePriority < waitingTask.basePriority && waitingTask.executedTime == 0)
+                {
+                    taskStates.get(waitingTask.dynamicTaskId - 1).addState(TASK_STATE.ARRIVAL_BLOCK, systemClock);
+                }
             }
         }
     }

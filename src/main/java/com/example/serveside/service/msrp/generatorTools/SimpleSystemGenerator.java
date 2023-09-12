@@ -66,6 +66,7 @@ public class SimpleSystemGenerator {
             }
         }
 
+
         return tasks;
     }
 
@@ -189,6 +190,144 @@ public class SimpleSystemGenerator {
         // sorted by utilization rate from smallest to largest
         tasks.sort((p1, p2) -> -Double.compare(p1.utilization, p2.utilization));
         return tasks;
+    }
+
+    public ArrayList<ProcedureControlBlock> testGenerateTask(){
+        ArrayList<ProcedureControlBlock> tasks = new ArrayList<>();
+
+        ProcedureControlBlock task = new ProcedureControlBlock(1, 50, 0.1, 0);
+        task.criticality = 1;
+        tasks.add(task);
+
+        task = new ProcedureControlBlock(2, 40, 0.1, 1);
+        task.criticality = 1;
+        tasks.add(task);
+
+        task = new ProcedureControlBlock(3, 60, 0.1, 2);
+        task.criticality = 1;
+        tasks.add(task);
+
+        task = new ProcedureControlBlock(4, 40, 0.1, 3);
+        task.criticality = 1;
+        tasks.add(task);
+
+        return tasks;
+    }
+
+
+    public ArrayList<Resource> testGenerateResources()
+    {
+        ArrayList<Resource> resources = new ArrayList<>();
+        Resource resource = new Resource(0, 3, 4);
+        resources.add(resource);
+        return resources;
+    }
+
+    public ArrayList<ArrayList<ProcedureControlBlock>> testGenerateResourceUsage(ArrayList<ProcedureControlBlock> tasks, ArrayList<Resource> resources)
+    {
+        ProcedureControlBlock taskTmp = tasks.get(0);
+        // task 1
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+
+        // task 2
+        taskTmp = tasks.get(1);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+        // task 4
+        taskTmp = tasks.get(3);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+        // 分配 CPU
+        ArrayList<ArrayList<ProcedureControlBlock>> generatedTaskSets = new ArrayList<>();
+        ArrayList<ProcedureControlBlock> cpu1 = new ArrayList<>();
+        tasks.get(0).runningCpuCore = 0;
+        tasks.get(1).runningCpuCore = 0;
+        cpu1.add(tasks.get(0));
+        cpu1.add(tasks.get(1));
+
+        ArrayList<ProcedureControlBlock> cpu2 = new ArrayList<>();
+        tasks.get(2).runningCpuCore = 1;
+        tasks.get(3).runningCpuCore = 1;
+        cpu2.add(tasks.get(2));
+        cpu2.add(tasks.get(3));
+
+        generatedTaskSets.add(cpu1);
+        generatedTaskSets.add(cpu2);
+
+        Random ran = new Random();
+        // generate WCCT for every task
+        for (ArrayList<ProcedureControlBlock> taskSet : generatedTaskSets) {
+            for (ProcedureControlBlock oneTask : taskSet) {
+
+                double Ui = oneTask.utilization;
+                int Ti = oneTask.period;
+                int sigma = 0;
+                for (int k = 0; k < oneTask.accessResourceIndex.size(); ++k) {
+                    Resource rk = resources.get(oneTask.accessResourceIndex.get(k));
+                    sigma = sigma + rk.c_high;
+                }
+
+                int WCCT = (int) (Ui * Ti - sigma);
+                if (WCCT < 0)
+                    WCCT = 0;
+                oneTask.WCCT_low = WCCT;
+                oneTask.WCCT_high = (int) ((1 + ran.nextFloat() / 2) * WCCT);
+            }
+        }
+
+
+
+        if (resources != null && !resources.isEmpty()) {
+            // initialize the resource usage
+            for (Resource res : resources) {
+                res.isGlobal = false;
+                res.partitions.clear();
+                res.requested_tasks.clear();
+                res.ceiling.clear();
+            }
+
+            /* for each resource */
+            for (Resource resource : resources) {
+                /* for a given resource, traversing all the tasks and record the information */
+                /* for each partition */
+                for (ArrayList<ProcedureControlBlock> generatedTaskSet : generatedTaskSets)
+                {
+                    int ceiling = 0;
+
+                    /* for each task in the given partition */
+                    for (ProcedureControlBlock task : generatedTaskSet)
+                    {
+                        // set the request task and its cpu core
+                        if (task.accessResourceIndex.contains(resource.id)) {
+                            resource.requested_tasks.add(task);
+                            ceiling = Math.max(task.priorities.peek(), ceiling);
+                            if (!resource.partitions.contains(task.runningCpuCore)) {
+                                resource.partitions.add(task.runningCpuCore);
+                            }
+                        }
+                    }
+
+                    // Priority Ceiling Protocol: get the resource ceiling that indicates the highest base priority among all the tasks
+                    // that require this resource.
+                    // record all the partition's highest ceiling
+                    resource.ceiling.add(ceiling);
+                }
+
+                // more than one cpu core access this resource
+                if (resource.partitions.size() > 1)
+                    resource.isGlobal = true;
+            }
+        }
+        else {
+            System.err.print("ERROR at resource usage, taskset is NULL!");
+            System.exit(-1);
+        }
+
+        return generatedTaskSets;
     }
 
     /*

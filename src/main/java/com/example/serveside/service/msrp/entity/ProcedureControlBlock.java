@@ -53,6 +53,9 @@ public class ProcedureControlBlock {
     /* the priority of the task */
     public Stack<Integer> priorities;
 
+    /* Base priority of the task */
+    public int basePriority;
+
     /* The static id, represent a task, not running. */
     public int staticTaskId;
 
@@ -74,6 +77,7 @@ public class ProcedureControlBlock {
     {
         priorities = new Stack<>();
         priorities.add(_priority);
+        basePriority = _priority;
 
         period = _period;
         deadline = _period;
@@ -103,6 +107,7 @@ public class ProcedureControlBlock {
     {
         priorities = new Stack<>();
         priorities.addAll(copy.priorities);
+        basePriority = copy.basePriority;
 
         period = copy.period;
         deadline = copy.period;

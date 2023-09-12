@@ -47,7 +47,7 @@ class SingleTaskState {
                 return "preempted";
 
             case ARRIVAL_BLOCK:
-                return "arrival-block";
+                return "arrival-blocking";
 
             case DIRECT_SPIN:
                 return "direct-spinning";
@@ -102,7 +102,10 @@ public class TaskStateInformation {
 
     /* Add a new state for task. */
     public void addState(SingleTaskState.TASK_STATE _state, int _beginTime) {
-        taskStates.add(new SingleTaskState(_state, _beginTime, -1, -1, priority));
+        if (taskStates.isEmpty() || taskStates.get(taskStates.size() - 1).state != _state)
+        {
+            taskStates.add(new SingleTaskState(_state, _beginTime, -1, -1, priority));
+        }
     }
     
     public void addState(SingleTaskState.TASK_STATE _state, int _beginTime, int _resourceId) {
