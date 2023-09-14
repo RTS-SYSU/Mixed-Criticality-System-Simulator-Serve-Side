@@ -1,9 +1,9 @@
-package com.example.serveside.service.msrp.generatorTools;
+package com.example.serveside.service.mrsp.generatorTools;
 
-import com.example.serveside.service.msrp.entity.MixedCriticalSystem.CS_LENGTH_RANGE;
-import com.example.serveside.service.msrp.entity.MixedCriticalSystem.RESOURCES_RANGE;
-import com.example.serveside.service.msrp.entity.ProcedureControlBlock;
-import com.example.serveside.service.msrp.entity.Resource;
+import com.example.serveside.service.mrsp.entity.MixedCriticalSystem.CS_LENGTH_RANGE;
+import com.example.serveside.service.mrsp.entity.MixedCriticalSystem.RESOURCES_RANGE;
+import com.example.serveside.service.mrsp.entity.ProcedureControlBlock;
+import com.example.serveside.service.mrsp.entity.Resource;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -74,7 +74,7 @@ public class SimpleSystemGenerator {
     private ArrayList<ArrayList<ProcedureControlBlock>> WorstFitAllocation(ArrayList<ProcedureControlBlock> tasksToAllocate, int partitions) {
         // clear tasks' partitions
         for (ProcedureControlBlock procedureControlBlock : tasksToAllocate) {
-            procedureControlBlock.runningCpuCore = -1;
+            procedureControlBlock.baseRunningCpuCore = -1;
         }
 
         // Init allocated tasks array
@@ -111,7 +111,7 @@ public class SimpleSystemGenerator {
             // have enough utilization to execute the task
             if ((double) 1 - minUtil >= task.utilization) {
                 // allow the task to the cpu core
-                task.runningCpuCore = target;
+                task.baseRunningCpuCore = target;
                 // update the utilization of the cpu core
                 utilPerPartition.set(target, utilPerPartition.get(target) + task.utilization);
             } else
@@ -120,7 +120,7 @@ public class SimpleSystemGenerator {
 
         // the CPU core record the task that is allocated to it.
         for (ProcedureControlBlock procedureControlBlock : tasksToAllocate) {
-            int partition = procedureControlBlock.runningCpuCore;
+            int partition = procedureControlBlock.baseRunningCpuCore;
             tasks.get(partition).add(procedureControlBlock);
         }
 
@@ -244,14 +244,14 @@ public class SimpleSystemGenerator {
         // 分配 CPU
         ArrayList<ArrayList<ProcedureControlBlock>> generatedTaskSets = new ArrayList<>();
         ArrayList<ProcedureControlBlock> cpu1 = new ArrayList<>();
-        tasks.get(0).runningCpuCore = 0;
-        tasks.get(1).runningCpuCore = 0;
+        tasks.get(0).baseRunningCpuCore = 0;
+        tasks.get(1).baseRunningCpuCore = 0;
         cpu1.add(tasks.get(0));
         cpu1.add(tasks.get(1));
 
         ArrayList<ProcedureControlBlock> cpu2 = new ArrayList<>();
-        tasks.get(2).runningCpuCore = 1;
-        tasks.get(3).runningCpuCore = 1;
+        tasks.get(2).baseRunningCpuCore = 1;
+        tasks.get(3).baseRunningCpuCore = 1;
         cpu2.add(tasks.get(2));
         cpu2.add(tasks.get(3));
 
@@ -293,6 +293,7 @@ public class SimpleSystemGenerator {
             for (Resource resource : resources) {
                 /* for a given resource, traversing all the tasks and record the information */
                 /* for each partition */
+                resource.isGlobal = true;
                 for (ArrayList<ProcedureControlBlock> generatedTaskSet : generatedTaskSets)
                 {
                     int ceiling = 0;
@@ -304,9 +305,6 @@ public class SimpleSystemGenerator {
                         if (task.accessResourceIndex.contains(resource.id)) {
                             resource.requested_tasks.add(task);
                             ceiling = Math.max(task.priorities.peek(), ceiling);
-                            if (!resource.partitions.contains(task.runningCpuCore)) {
-                                resource.partitions.add(task.runningCpuCore);
-                            }
                         }
                     }
 
@@ -314,11 +312,9 @@ public class SimpleSystemGenerator {
                     // that require this resource.
                     // record all the partition's highest ceiling
                     resource.ceiling.add(ceiling);
+                    if (ceiling == 0)
+                        resource.isGlobal = false;
                 }
-
-                // more than one cpu core access this resource
-                if (resource.partitions.size() > 1)
-                    resource.isGlobal = true;
             }
         }
         else {
@@ -470,7 +466,7 @@ public class SimpleSystemGenerator {
         // set the task's running core, but in WortFitAllocation, this procedure has been done.
         for (int i = 0; i < generatedTaskSets.size(); i++) {
             for (int j = 0; j < generatedTaskSets.get(i).size(); j++) {
-                generatedTaskSets.get(i).get(j).runningCpuCore = i;
+                generatedTaskSets.get(i).get(j).baseRunningCpuCore = i;
             }
         }
 
@@ -509,10 +505,12 @@ public class SimpleSystemGenerator {
             }
 
             /* for each resource */
+            /* resource 在每一个 CPU 核 上都对应的一个 priority. */
             for (Resource resource : resources) {
                 /* for a given resource, traversing all the tasks and record the information */
                 /* for each partition */
                 resource.isGlobal = true;
+
                 for (ArrayList<ProcedureControlBlock> generatedTaskSet : generatedTaskSets)
                 {
                     int ceiling = 0;
@@ -523,20 +521,17 @@ public class SimpleSystemGenerator {
                         // set the request task and its cpu core
                         if (task.accessResourceIndex.contains(resource.id)) {
                             resource.requested_tasks.add(task);
-                            ceiling = Math.max(task.priorities.peek(), ceiling);
+                            ceiling = Math.max(task.basePriority, ceiling);
                         }
                     }
 
                     // Priority Ceiling Protocol: get the resource ceiling that indicates the highest base priority among all the tasks
                     // that require this resource.
                     // record all the partition's highest ceiling
-                    // 如果 ceiling = 0，说明该cpu核上的任务并没有使用该资源
+                    resource.ceiling.add(ceiling);
                     if (ceiling == 0)
                         resource.isGlobal = false;
-
-                    resource.ceiling.add(ceiling);
                 }
-
             }
         }
         else {

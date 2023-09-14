@@ -17,6 +17,27 @@ public class EventInformation {
     private Integer endTime;
 
     /* 构造函数 */
+    public EventInformation(com.example.serveside.service.mrsp.entity.ProcedureControlBlock task, Integer _startTime, String _state)
+    {
+        staticPid = task.staticTaskId;
+        dynamicPid = task.dynamicTaskId;
+        startTime = _startTime;
+        endTime = -1;
+
+        if (_state.isEmpty())
+        {
+            // 设置状态
+            if (task.spin)
+                state = "direct-spinning";
+            else if (task.isAccessGlobalResource || task.isAccessLocalResource)
+                state = "access-resource";
+            else
+                state = "normal-execution";
+        }else
+            state = _state;
+    }
+
+    /* 构造函数 */
     public EventInformation(Integer staticPid, Integer dynamicPid, String state, Integer startTime, Integer endTime)
     {
         this.staticPid = staticPid;
