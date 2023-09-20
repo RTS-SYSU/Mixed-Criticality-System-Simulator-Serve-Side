@@ -1,4 +1,4 @@
-package com.example.serveside.service.msrp.entity;
+package com.example.serveside.response;
 
 import java.util.ArrayList;
 
@@ -36,7 +36,18 @@ public class TaskInformation
         this.resourceAccessIndex = resourceAccessIndex;
     }
 
-    public TaskInformation(ProcedureControlBlock procedureControlBlock, Integer systemClock)
+    public TaskInformation(com.example.serveside.service.msrp.entity.ProcedureControlBlock procedureControlBlock, Integer systemClock)
+    {
+        this.staticPid = procedureControlBlock.staticTaskId;
+        this.dynamicPid = procedureControlBlock.dynamicTaskId;
+        this.priority = procedureControlBlock.priorities.peek();
+        this.criticality = procedureControlBlock.criticality;
+        this.resourceAccessTime = procedureControlBlock.resourceAccessTime;
+        this.resourceAccessIndex = procedureControlBlock.accessResourceIndex;
+        this.releaseTime = systemClock;
+    }
+
+    public TaskInformation(com.example.serveside.service.mrsp.entity.ProcedureControlBlock procedureControlBlock, Integer systemClock)
     {
         this.staticPid = procedureControlBlock.staticTaskId;
         this.dynamicPid = procedureControlBlock.dynamicTaskId;

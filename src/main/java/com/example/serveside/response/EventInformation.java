@@ -19,6 +19,17 @@ public class EventInformation {
     /* 构造函数 */
     public EventInformation(com.example.serveside.service.mrsp.entity.ProcedureControlBlock task, Integer _startTime, String _state)
     {
+        // 任务为空，此时 cpu 空闲
+        if (task == null)
+        {
+            staticPid = -1;
+            dynamicPid = -1;
+            startTime = _startTime;
+            endTime = -1;
+            state = "spare";
+            return ;
+        }
+
         staticPid = task.staticTaskId;
         dynamicPid = task.dynamicTaskId;
         startTime = _startTime;

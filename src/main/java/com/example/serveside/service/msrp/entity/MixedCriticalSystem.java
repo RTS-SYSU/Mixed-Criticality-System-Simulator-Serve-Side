@@ -3,6 +3,7 @@ package com.example.serveside.service.msrp.entity;
 import com.example.serveside.response.EventInformation;
 import com.example.serveside.response.EventTimePoint;
 import com.example.serveside.response.GanttInformation;
+import com.example.serveside.response.TaskInformation;
 import com.example.serveside.service.msrp.generatorTools.SimpleSystemGenerator;
 import com.example.serveside.service.msrp.utils.ShowEventInformation;
 import com.example.serveside.service.msrp.utils.ShowTaskStates;
@@ -328,11 +329,11 @@ public class MixedCriticalSystem {
         /* Action: Request for resource. */
         ExecuteTasks();
 
-        /* Release tasks */
-        ReleaseTasks();
-
         /* After execute one clock, we firstly Increase the elapsed time of the task in runningTaskPerCore and waitingTasks. */
         IncreaseElapsedTime();
+
+        /* Release tasks */
+        ReleaseTasks();
 
         /* Choose a task to running. */
         ChooseTaskToRun();

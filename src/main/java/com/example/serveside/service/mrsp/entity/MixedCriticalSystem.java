@@ -1,9 +1,10 @@
 package com.example.serveside.service.mrsp.entity;
 
+import com.example.serveside.response.EventTimePoint;
+import com.example.serveside.response.ToTalInformation;
 import com.example.serveside.service.mrsp.generatorTools.SimpleSystemGenerator;
 
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
 
 public class MixedCriticalSystem {
     /* System Setup */
@@ -14,7 +15,7 @@ public class MixedCriticalSystem {
     public static int TOTAL_CPU_CORE_NUM = 2;
 
     /* The minimum period for every task. */
-    public static int MIN_PERIOD = 50;
+    public static int MIN_PERIOD = 20;
 
     /* The maximum period for every task. */
     public static int MAX_PERIOD = 1000;
@@ -82,8 +83,17 @@ public class MixedCriticalSystem {
     /* 记录任务在运行过程中的状态 */
     public static ArrayList<ArrayList<com.example.serveside.response.EventInformation>> TaskEventInformationRecords;
 
+    /* 记录 cpu 在运行过程中的状态 */
+    public static ArrayList<ArrayList<com.example.serveside.response.EventInformation>> cpuEventInformationRecords;
+
+    /* 记录 cpu 在运行过程中事件发生的时间点 */
+    public static ArrayList<ArrayList<com.example.serveside.response.EventTimePoint>> cpuEventTimePointRecords;
+
     /* 任务进行切换时 那些被抢占的任务(正在访问资源) */
     public static ArrayList<ProcedureControlBlock> preemptedAccessResourceTasks;
+
+    /* 已发布的任务的信息 */
+    public static ArrayList<com.example.serveside.response.TaskInformation> releaseTaskInformations;
 
     /* The time axis length*/
     public static Integer timeAxisLength;
@@ -173,6 +183,25 @@ public class MixedCriticalSystem {
         // 记录每一个任务在运行过程中发生的一些事件点
         TaskEventTimePointsRecords = new ArrayList<>();
 
+        // 记录每一个任务的运行过程
+        TaskEventInformationRecords = new ArrayList<>();
+
+        // 记录每一个发布的任务的信息
+        releaseTaskInformations = new ArrayList<>();
+
+        // 在这一个时钟周期内被抢占的任务（任务正在使用资源）
+        preemptedAccessResourceTasks = new ArrayList<>();
+
+        // 记录 cpu 在运行过程中的状态
+        cpuEventInformationRecords = new ArrayList<>();
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+            cpuEventInformationRecords.add(new ArrayList<>());
+
+        // 记录 cpu 在运行过程发生的事件的时间点
+        cpuEventTimePointRecords = new ArrayList<>();
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+            cpuEventTimePointRecords.add(new ArrayList<>());
+
         while (!SystemSuspend())
             ExecuteOnceClock();
 
@@ -194,10 +223,10 @@ public class MixedCriticalSystem {
     * ExecuteOneClock: 模拟器在一个时钟周期内需要完成的事
     *   1. ExecuteTasks() :
     *       -判断任务在当前时刻要不要访问资源
-    *   2. ReleaseTasks() :
-    *       -模拟器在当前时刻需不需要释放任务
-    *   3. IncreaseElapsedTime():
+    *   2. IncreaseElapsedTime():
     *       -正在运行的任务运行时间+1（各种时间都需要加1）
+    *   3. ReleaseTasks() :
+    *       -模拟器在当前时刻需不需要释放任务
     *   4. ChooseTaskToRun():
     *       -任务切换
     * */
@@ -205,9 +234,9 @@ public class MixedCriticalSystem {
     {
         ExecuteTasks();
 
-        ReleaseTasks();
-
         IncreaseElapsedTime();
+
+        ReleaseTasks();
 
         ChooseTaskToRun();
     }
@@ -222,6 +251,11 @@ public class MixedCriticalSystem {
             if (runningTask == null)
                 continue;
 
+            // 1. 任务不需要请求资源
+            // 2. 任务已经请求完了所有的资源
+            if (runningTask.resourceAccessTime.isEmpty() || runningTask.requestResourceTh >= runningTask.resourceAccessTime.size())
+                continue;
+
             // 任务到申请资源的时间点了
             if (runningTask.executedTime == runningTask.resourceAccessTime.get(runningTask.requestResourceTh))
             {
@@ -234,6 +268,18 @@ public class MixedCriticalSystem {
                     accquireResource.waitingQueue.add(runningTask);
                     runningTask.spin = true;
                     runningTask.priorities.push(accquireResource.ceiling.get(runningTask.baseRunningCpuCore));
+
+                    // 任务新增状态：direct-spinning
+                    ChangeTaskState(runningTask, "direct-spinning");
+
+                    // 任务新增：事件时间点
+                    TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "lock-attempt", systemClock, accquireResource.id));
+
+                    // cpu 任务状态发生变化：execution --> direct-spinning
+                    ChangeCpuTaskState(runningTask.baseRunningCpuCore, runningTask, "direct-spinning");
+                    // cpu 新增事件发生时间点：lock-attempt
+                    cpuEventTimePointRecords.get(runningTask.baseRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "lock-attempt", systemClock, accquireResource.id));
+
                 }
                 // accquireResource 没有被占据，空闲的
                 else {
@@ -245,6 +291,17 @@ public class MixedCriticalSystem {
                     runningTask.remainResourceComputationTime = criticality_indicator == 0 ? accquireResource.c_low : accquireResource.c_high;
                     runningTask.systemCriticalityWhenAccessResource = criticality_indicator;
                     runningTask.priorities.push(accquireResource.ceiling.get(runningTask.baseRunningCpuCore));
+
+                    // 任务新增状态：access-resource
+                    ChangeTaskState(runningTask, "access-resource");
+
+                    // 任务新增：事件时间点
+                    TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", systemClock, accquireResource.id));
+
+                    // cpu 上运行的任务状态发生变化：normal-execution --> access-resource
+                    ChangeCpuTaskState(runningTask.baseRunningCpuCore, runningTask, "access-resource");
+                    // cpu 新增事件发生时间点：locked
+                    cpuEventTimePointRecords.get(runningTask.baseRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", systemClock, accquireResource.id));
 
                 }
             }
@@ -271,10 +328,17 @@ public class MixedCriticalSystem {
                 releaseTask.dynamicTaskId = releaseTaskNum++;
                 waitingTasksPerCore.get(totalTasks.get(i).baseRunningCpuCore).add(releaseTask);
 
+                // 记录一下发布的任务的基本信息
+                releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
+
                 System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
 
                 // 记录一下任务发布的时间点
+                TaskEventTimePointsRecords.add(new ArrayList<>());
                 TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
+
+                // 创建一个新的 taskEventInformation 来保存任务的运行过程
+                TaskEventInformationRecords.add(new ArrayList<>());
 
             }else
                 ++timeSinceLastRelease[i];
@@ -288,6 +352,9 @@ public class MixedCriticalSystem {
         // 1. 处理运行在 cpu 上的任务
         for (ProcedureControlBlock runningTask : runningTaskPerCore)
         {
+            if (runningTask == null)
+                continue;
+
             ++runningTask.elapsedTime;
 
             // 任务正在访问资源（资源使用还剩多少时间）
@@ -318,15 +385,30 @@ public class MixedCriticalSystem {
             }
         }
 
-        // 3. 处理使用完资源的任务
+        // 3. 处理使用完资源的任务(需要加上条件判断：当前有任务在执行+任务有在访问资源)
         for (ProcedureControlBlock runningTask : runningTaskPerCore)
-        {
             // 资源使用完，释放资源
-            if (runningTask.remainResourceComputationTime == 0)
-            {
+            if (runningTask != null && (runningTask.isAccessLocalResource || runningTask.isAccessGlobalResource) && runningTask.remainResourceComputationTime == 0)
+                ReleaseResource(runningTask);
 
+        // 4. 处理在 baseRunningCpuCore 上完成计算的的任务
+        for (ProcedureControlBlock runningTask : runningTaskPerCore)
+            // 需要注意：此时 task 不能够访问资源（在高关键级下面，executedTime 可能会超过 totalNeededTime）
+            if (runningTask != null && !runningTask.isAccessLocalResource && !runningTask.isAccessGlobalResource && runningTask.executedTime == runningTask.totalNeededTime)
+            {
+                ChangeTaskState(runningTask, "completion");
+                runningTaskPerCore.set(runningTask.baseRunningCpuCore, null);
+                ++taskFinishTimes[runningTask.staticTaskId];
+
+                // 任务新增：事件时间点（完成任务）
+                ChangeTaskState(runningTask, "completion");
+                TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "completion", systemClock, -1));
+
+                // cpu 上的任务完成(状态发生变化)：normal-execution --> completion
+                cpuEventTimePointRecords.get(runningTask.baseRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "completion", systemClock, -1));
+                ChangeCpuTaskState(runningTask.baseRunningCpuCore, null, "");
             }
-        }
+
     }
 
     public static void ReleaseResource(ProcedureControlBlock runningTask)
@@ -355,15 +437,14 @@ public class MixedCriticalSystem {
             if (helpTask != null)
             {
                 helpTask.isHelp = false;
-                // 结束上一个状态：help-direct-spin
+                // 结束 help-task 的上一个状态：help-direct-spin
                 ChangeTaskState(helpTask, "");
 
-                // 设置 immigrateRunningCpuCore 上执行的任务为空：原因是：ReleaseTask中可能发布了一个优先级更高的任务，选择任务执行交到ChooseTaskToRun
-                runningTaskPerCore.set(runningTask.immigrateRunningCpuCore, null);
-
-                // runningTask 返回原cpu核上等待
-                runningTask.immigrateRunningCpuCore = -1;
-                waitingTasksPerCore.get(runningTask.baseRunningCpuCore).add(runningTask);
+                // 设置 immigrateRunningCpuCore 上执行的任务为 helpTask
+                // helpTask 回归 immigrateRunningCpuCore.
+                waitingTasksPerCore.get(runningTask.immigrateRunningCpuCore).remove(helpTask);
+                runningTaskPerCore.set(runningTask.immigrateRunningCpuCore, helpTask);
+                ChangeTaskState(helpTask, "");
             }
         }
 
@@ -375,6 +456,8 @@ public class MixedCriticalSystem {
         ++runningTask.requestResourceTh;
         if (runningTask.systemCriticalityWhenAccessResource == 1)
             runningTask.executedTime -= (releaseResource.c_high - releaseResource.c_low);
+        // runningTask 记录事件发生的时间点
+        TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "unlocked", systemClock, releaseResource.id));
 
         // 2.有任务在等待该资源
         if (!releaseResource.waitingQueue.isEmpty())
@@ -389,9 +472,61 @@ public class MixedCriticalSystem {
             waitingTask.isAccessGlobalResource = releaseResource.isGlobal;
             waitingTask.isAccessLocalResource = !waitingTask.isAccessGlobalResource;
 
-            // 
+            // 优先级 boosted
+            waitingTask.priorities.push(releaseResource.ceiling.get(waitingTask.baseRunningCpuCore));
 
+            // task state：access-resource
+            ChangeTaskState(waitingTask, "access-resource");
+            TaskEventTimePointsRecords.get(waitingTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "locked", systemClock, releaseResource.id));
+
+            // 判断 waiting Task 是否正在执行
+            if (waitingTask == runningTaskPerCore.get(waitingTask.baseRunningCpuCore))
+            {
+                // cpu state:
+                ChangeCpuTaskState(waitingTask.baseRunningCpuCore, waitingTask, "access-resource");
+                cpuEventTimePointRecords.get(waitingTask.baseRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "locked", systemClock, releaseResource.id));
+            }else
+            {
+                // 加入 preemptedAccessResourceTasks 当中去判断能不能启动 help mechanism
+                preemptedAccessResourceTasks.add(waitingTask);
+            }
         }
+
+        // runningTask 是迁移到别人的核心上进行执行的话，需要迁移回去
+        if (runningTask.immigrateRunningCpuCore != -1)
+        {
+            // runningTask 此时也完成了执行，即 executedTime = totalNeedTime，那就直接在 immigrate cpu core 上结束该任务
+            if (runningTask.executedTime == runningTask.totalNeededTime)
+            {
+                // immigrate cpu core 上显示 completion 标记
+                cpuEventTimePointRecords.get(runningTask.immigrateRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "completion", systemClock, -1));
+
+                // task state :1. end event; 2. symbol execution --> completion
+                ChangeTaskState(runningTask, "completion");
+                TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "completion", systemClock, -1));
+            }else
+            {
+                // runningTask 返回到 base running cpu core 上继续执行
+                waitingTasksPerCore.get(runningTask.baseRunningCpuCore).add(runningTask);
+
+                // task state: 1. help-access-resource --> blocked(immigrate to base cpu core)
+                ChangeTaskState(runningTask, "blocked");
+            }
+
+            // immigrate cpu core 上显示: execution --> non task execution
+            ChangeCpuTaskState(runningTask.immigrateRunningCpuCore, null, "");
+            runningTaskPerCore.set(runningTask.immigrateRunningCpuCore, null);
+
+            // runningTask 取消迁移
+            runningTask.immigrateRunningCpuCore = -1;
+        }else
+        {
+            // 在原本的核心上执行，简单切换一下状态就行
+            ChangeTaskState(runningTask, "");
+            ChangeCpuTaskState(runningTask.baseRunningCpuCore, runningTask, "");
+        }
+
+
     }
 
     /*
@@ -400,8 +535,6 @@ public class MixedCriticalSystem {
     * */
     public static void ChooseTaskToRun()
     {
-        // 初始化保存被抢占的任务（正在访问全局资源）
-        preemptedAccessResourceTasks.clear();
 
         // 1. 高优先级的任务抢占低优先级的任务
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
@@ -423,8 +556,14 @@ public class MixedCriticalSystem {
                 // waiting Task 放在对应的 CPU 核上运行
                 runningTaskPerCore.set(i, waitingTask);
 
-                // 任务状态发生变化: 修改 waitingTask 对应的状态
+                // 任务状态发生变化: 恢复 waitingTask 以前的状态 / waitingTask 开始执行
                 ChangeTaskState(waitingTask, "");
+
+                // 需要将 waitingTask 从 waitingTasks 中移出来
+                waitingTasks.remove(0);
+
+                // cpu 甘特图发生变化: 运行的任务发生变化(state 根据任务自身的状态来决定)
+                ChangeCpuTaskState(i, waitingTask, "");
 
                 continue;
             }
@@ -441,13 +580,59 @@ public class MixedCriticalSystem {
                     preemptedAccessResourceTasks.add(runningTask);
                 else
                     waitingTasks.add(runningTask);
+
+                // 需要将 waitingTask 从 waitingTasks 中移出来
+                waitingTasks.remove(0);
+
+                // runningTask 的状态也需要发生变化：blocked
+                ChangeTaskState(runningTask, "blocked");
+
+                // cpu 甘特图发生变化 : 运行的任务发生变化(state 根据任务自身的状态来决定)
+                ChangeCpuTaskState(i, waitingTask, "");
             }
         }
 
         // 2. 访问全局资源的任务（被抢占）进行迁移
-        for (ProcedureControlBlock preemptedTask : preemptedAccessResourceTasks)
+        for (Iterator<ProcedureControlBlock> iterator = preemptedAccessResourceTasks.iterator(); iterator.hasNext();)
         {
+            ProcedureControlBlock preemptedTask = iterator.next();
             Resource accessResource = totalResources.get(preemptedTask.accessResourceIndex.get(preemptedTask.requestResourceTh));
+
+            // 当 access-resource-task 在 help-cpu-core 上再次被抢占，可能有机会迁移回去
+            if (runningTaskPerCore.get(preemptedTask.baseRunningCpuCore) == null || accessResource.ceiling.get(preemptedTask.baseRunningCpuCore) > runningTaskPerCore.get(preemptedTask.baseRunningCpuCore).priorities.peek())
+            {
+                // access-resource-task 可以迁移回原来的 cpu core
+                // 1. 弹出其在 immigrate cpu core 上的优先级
+                // 2. 现在的优先级就应该是：resource.get(preemptedTask.baseRunningCpuCore.priorities.peek())
+                // 弹出的条件是 access-resource-task 已经发生过迁移，现在要回来
+                if (preemptedTask.immigrateRunningCpuCore != -1)
+                {
+                    preemptedTask.priorities.pop();
+                }
+
+                // 2. access-resource-task 抢占 base-cpu-core 上的任务
+                ProcedureControlBlock baseCpuCoreTask = runningTaskPerCore.get(preemptedTask.baseRunningCpuCore);
+                if (baseCpuCoreTask != null)
+                {
+                    // baseCpuCoreTask 新增状态：blocked, baseCpuCoreTask 被放入 waitingTasks 当中
+                    ChangeTaskState(baseCpuCoreTask, "blocked");
+                    waitingTasksPerCore.get(preemptedTask.baseRunningCpuCore).add(baseCpuCoreTask);
+                }
+
+                // access-resource-task 占据 base-running-cpu-core
+                ChangeTaskState(preemptedTask, "");
+                runningTaskPerCore.set(preemptedTask.baseRunningCpuCore, preemptedTask);
+                preemptedTask.immigrateRunningCpuCore = -1;
+
+                // base cpu core 上运行的任务发生变化: access-resource-task
+                ChangeCpuTaskState(preemptedTask.baseRunningCpuCore, preemptedTask, "");
+
+                // 将 preemptedATask 从队列当中删除
+                iterator.remove();
+                continue;
+            }
+
+            // 不可以迁移回去
             // 访问 waitingQueue 里面的 task 看看他们是否可以提供支持
             for (ProcedureControlBlock helpTask : accessResource.waitingQueue)
             {
@@ -477,6 +662,11 @@ public class MixedCriticalSystem {
                     runningTaskPerCore.set(helpTask.baseRunningCpuCore, preemptedTask);
                     preemptedTask.priorities.push(helpTask.priorities.peek() + 1);
 
+                    // immigrate cpu core 上运行的任务发生变化：help-task --> access-resource-task
+                    ChangeCpuTaskState(preemptedTask.immigrateRunningCpuCore, preemptedTask, "help-access-resource");
+
+                    // 将 preemptedATask 从队列当中删除
+                    iterator.remove();
                     break;
                 }
             }
@@ -489,13 +679,76 @@ public class MixedCriticalSystem {
     public static void ChangeTaskState(com.example.serveside.service.mrsp.entity.ProcedureControlBlock task, String _state)
     {
         ArrayList<com.example.serveside.response.EventInformation> taskInformations = TaskEventInformationRecords.get(task.dynamicTaskId);
-        // 先终止上一个状态
-        if (taskInformations.get(taskInformations.size() - 1).getStartTime() != systemClock)
-            taskInformations.get(taskInformations.size() - 1).setEndTime(systemClock);
-        else
-            taskInformations.remove(taskInformations.size() - 1);
+
+        // 先终止上一个状态(如果有的话)
+        if (!taskInformations.isEmpty())
+        {
+            if (taskInformations.get(taskInformations.size() - 1).getStartTime() != systemClock)
+                taskInformations.get(taskInformations.size() - 1).setEndTime(systemClock);
+            else
+                taskInformations.remove(taskInformations.size() - 1);
+        }
+
+        // 如果不是 completion，那么就开启一个新的状态
+        if (!_state.equals("completion"))
+            taskInformations.add(new com.example.serveside.response.EventInformation(task, systemClock, _state));
+    }
+
+    /*
+    * 切换 cpu 上任务的运行状态
+    * */
+    public static void ChangeCpuTaskState(int runningCpuCore, com.example.serveside.service.mrsp.entity.ProcedureControlBlock task, String _state)
+    {
+        ArrayList<com.example.serveside.response.EventInformation> cpuEventInformationRecord = cpuEventInformationRecords.get(runningCpuCore);
+        // 终止上一个状态(如果不为空的话)
+        if (!cpuEventInformationRecord.isEmpty())
+        {
+            if (cpuEventInformationRecord.get(cpuEventInformationRecord.size() - 1).getStartTime() != systemClock)
+                cpuEventInformationRecord.get(cpuEventInformationRecord.size() - 1).setEndTime(systemClock);
+            else
+                cpuEventInformationRecord.remove(cpuEventInformationRecord.size() - 1);
+        }
 
         // 开启一个新的状态
-        taskInformations.add(new com.example.serveside.response.EventInformation(task, systemClock, _state));
+        cpuEventInformationRecord.add(new com.example.serveside.response.EventInformation(task, systemClock, _state));
+    }
+
+    /*
+    * 打包 MrsP 协议的运行结果，然后返回给前端
+    * */
+    public static com.example.serveside.response.ToTalInformation PackageTotalInformation()
+    {
+        // 计算时间轴长度
+        CalculateTimeAxisLength();
+
+        // cpu gantt chart information cpu 甘特图信息 :
+        List<com.example.serveside.response.GanttInformation> cpuGanttInformations = new ArrayList<>();
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
+            cpuGanttInformations.add(new com.example.serveside.response.GanttInformation(cpuEventInformationRecords.get(i), cpuEventTimePointRecords.get(i), timeAxisLength));
+        }
+
+        // task gantt chart information: 任务甘特图信息：
+        List<com.example.serveside.response.TaskGanttInformation> taskGanttInformations = new ArrayList<>();
+        for (com.example.serveside.response.TaskInformation releaseTaskInformation : releaseTaskInformations)
+        {
+            com.example.serveside.response.GanttInformation ganttInformation = new com.example.serveside.response.GanttInformation(TaskEventInformationRecords.get(releaseTaskInformation.getDynamicPid()), TaskEventTimePointsRecords.get(releaseTaskInformation.getDynamicPid()), timeAxisLength);
+            taskGanttInformations.add(new com.example.serveside.response.TaskGanttInformation(releaseTaskInformation.getStaticPid(), releaseTaskInformation.getDynamicPid(), totalTasks.get(releaseTaskInformation.getStaticPid()).baseRunningCpuCore, ganttInformation));
+        }
+
+        return new com.example.serveside.response.ToTalInformation(cpuGanttInformations, releaseTaskInformations, taskGanttInformations);
+    }
+
+    /*
+    * 计算 timeAxisLength
+    * */
+    public static void CalculateTimeAxisLength()
+    {
+        timeAxisLength = 0;
+
+        for (ArrayList<com.example.serveside.response.EventInformation> TaskEventInformations : TaskEventInformationRecords)
+        {
+            timeAxisLength = Math.max(timeAxisLength, TaskEventInformations.get(TaskEventInformations.size() - 1).getEndTime());
+        }
     }
 }

@@ -7,12 +7,12 @@ public class ToTalInformation {
     private List<GanttInformation> cpuGanttInformations;
 
     /* 任务信息 */
-    private List<com.example.serveside.service.msrp.entity.TaskInformation> taskInformations;
+    private List<TaskInformation> taskInformations;
 
     /* 任务甘特图信息 */
     private List<TaskGanttInformation> taskGanttInformations;
 
-    public ToTalInformation(List<GanttInformation> cpuGanttInformations, List<com.example.serveside.service.msrp.entity.TaskInformation> taskInformations, List<com.example.serveside.response.TaskGanttInformation> taskGanttInformations)
+    public ToTalInformation(List<GanttInformation> cpuGanttInformations, List<TaskInformation> taskInformations, List<com.example.serveside.response.TaskGanttInformation> taskGanttInformations)
     {
         this.cpuGanttInformations = cpuGanttInformations;
         this.taskInformations = taskInformations;
@@ -23,9 +23,9 @@ public class ToTalInformation {
 
     public List<GanttInformation> getCpuGanttInformations() { return this.cpuGanttInformations; }
 
-    public void setTaskInformations(List<com.example.serveside.service.msrp.entity.TaskInformation> taskInformations) { this.taskInformations = taskInformations; }
+    public void setTaskInformations(List<TaskInformation> taskInformations) { this.taskInformations = taskInformations; }
 
-    public List<com.example.serveside.service.msrp.entity.TaskInformation> getTaskInformations() { return this.taskInformations; }
+    public List<TaskInformation> getTaskInformations() { return this.taskInformations; }
 
     public void setTaskGanttInformations(List<com.example.serveside.response.TaskGanttInformation> taskGanttInformations) { this.taskGanttInformations = taskGanttInformations; }
 
