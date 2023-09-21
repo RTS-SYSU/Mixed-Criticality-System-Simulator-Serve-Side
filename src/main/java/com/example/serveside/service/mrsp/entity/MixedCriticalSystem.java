@@ -105,16 +105,16 @@ public class MixedCriticalSystem {
                 RESOURCE_SHARING_FACTOR, NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE);
 
         // Generate the tasks that the system need to execute.
-        totalTasks = systemGenerator.generateTasks();
-//        totalTasks = systemGenerator.testGenerateTask();
+//        totalTasks = systemGenerator.generateTasks();
+        totalTasks = systemGenerator.testGenerateTask();
 
         // Generate the resources that the system has.
-        totalResources = systemGenerator.generateResources();
-//        totalResources = systemGenerator.testGenerateResources();
+//        totalResources = systemGenerator.generateResources();
+        totalResources = systemGenerator.testGenerateResources();
 
         // Generate the resource usage, i.e. task access the resource(time, times)
-        allocatedTasks = systemGenerator.generateResourceUsage(totalTasks, totalResources);
-//        allocatedTasks = systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
+//        allocatedTasks = systemGenerator.generateResourceUsage(totalTasks, totalResources);
+        allocatedTasks = systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
 
         // Print the information about the task.
         for (int i = 0; i < allocatedTasks.size(); ++i) {
@@ -232,6 +232,8 @@ public class MixedCriticalSystem {
     * */
     public static void ExecuteOnceClock()
     {
+        if (systemClock == 4 || systemClock == 63)
+            System.out.print("HelloWorld");
         ExecuteTasks();
 
         IncreaseElapsedTime();
@@ -253,7 +255,8 @@ public class MixedCriticalSystem {
 
             // 1. 任务不需要请求资源
             // 2. 任务已经请求完了所有的资源
-            if (runningTask.resourceAccessTime.isEmpty() || runningTask.requestResourceTh >= runningTask.resourceAccessTime.size())
+            // 3. 任务正在等待资源(direct spinning)
+            if (runningTask.resourceAccessTime.isEmpty() || runningTask.requestResourceTh >= runningTask.resourceAccessTime.size() || runningTask.spin)
                 continue;
 
             // 任务到申请资源的时间点了
@@ -265,9 +268,11 @@ public class MixedCriticalSystem {
                 if (accquireResource.isOccupied)
                 {
                     // 设置 runningTask 的状态：spin, 优先级短暂提升
-                    accquireResource.waitingQueue.add(runningTask);
                     runningTask.spin = true;
                     runningTask.priorities.push(accquireResource.ceiling.get(runningTask.baseRunningCpuCore));
+
+                    // 任务加入到资源的等待队列当中
+                    accquireResource.waitingQueue.add(runningTask);
 
                     // 任务新增状态：direct-spinning
                     ChangeTaskState(runningTask, "direct-spinning");
@@ -292,6 +297,9 @@ public class MixedCriticalSystem {
                     runningTask.systemCriticalityWhenAccessResource = criticality_indicator;
                     runningTask.priorities.push(accquireResource.ceiling.get(runningTask.baseRunningCpuCore));
 
+                    // 设置资源现在被占据
+                    accquireResource.isOccupied = true;
+
                     // 任务新增状态：access-resource
                     ChangeTaskState(runningTask, "access-resource");
 
@@ -311,6 +319,102 @@ public class MixedCriticalSystem {
     public static void ReleaseTasks()
     {
         Random random = new Random();
+
+        if (systemClock == 1)
+        {
+            // task 1
+            timeSinceLastRelease[1] = 0;
+            // initialize the release task and set its pid.
+            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(1));
+            releaseTask.dynamicTaskId = releaseTaskNum++;
+            waitingTasksPerCore.get(totalTasks.get(1).baseRunningCpuCore).add(releaseTask);
+
+            // 记录一下发布的任务的基本信息
+            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
+
+            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
+
+            // 记录一下任务发布的时间点
+            TaskEventTimePointsRecords.add(new ArrayList<>());
+            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
+
+            // 创建一个新的 taskEventInformation 来保存任务的运行过程
+            TaskEventInformationRecords.add(new ArrayList<>());
+
+            // task 0
+            timeSinceLastRelease[0] = 0;
+            // initialize the release task and set its pid.
+            releaseTask = new ProcedureControlBlock(totalTasks.get(0));
+            releaseTask.dynamicTaskId = releaseTaskNum++;
+            waitingTasksPerCore.get(totalTasks.get(0).baseRunningCpuCore).add(releaseTask);
+
+            // 记录一下发布的任务的基本信息
+            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
+
+            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
+
+            // 记录一下任务发布的时间点
+            TaskEventTimePointsRecords.add(new ArrayList<>());
+            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
+
+            // 创建一个新的 taskEventInformation 来保存任务的运行过程
+            TaskEventInformationRecords.add(new ArrayList<>());
+
+            ++timeSinceLastRelease[2];
+            ++timeSinceLastRelease[3];
+            return ;
+        }
+
+
+        if (systemClock == 3)
+        {
+            // task 2
+            timeSinceLastRelease[2] = 0;
+            // initialize the release task and set its pid.
+            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(2));
+            releaseTask.dynamicTaskId = releaseTaskNum++;
+            waitingTasksPerCore.get(totalTasks.get(2).baseRunningCpuCore).add(releaseTask);
+
+            // 记录一下发布的任务的基本信息
+            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
+
+            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
+
+            // 记录一下任务发布的时间点
+            TaskEventTimePointsRecords.add(new ArrayList<>());
+            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
+
+            // 创建一个新的 taskEventInformation 来保存任务的运行过程
+            TaskEventInformationRecords.add(new ArrayList<>());
+
+            // task 3
+            timeSinceLastRelease[3] = 0;
+            // initialize the release task and set its pid.
+            releaseTask = new ProcedureControlBlock(totalTasks.get(3));
+            releaseTask.dynamicTaskId = releaseTaskNum++;
+            waitingTasksPerCore.get(totalTasks.get(3).baseRunningCpuCore).add(releaseTask);
+
+            // 记录一下发布的任务的基本信息
+            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
+
+            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
+
+            // 记录一下任务发布的时间点
+            TaskEventTimePointsRecords.add(new ArrayList<>());
+            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
+
+            // 创建一个新的 taskEventInformation 来保存任务的运行过程
+            TaskEventInformationRecords.add(new ArrayList<>());
+
+            ++timeSinceLastRelease[0];
+            ++timeSinceLastRelease[1];
+            return ;
+        }
+
+
+        if (systemClock < 13)
+            return ;
+
         for (int i = 0; i < totalTasks.size(); ++i)
         {
             // Even if the time elapsed since the last release is greater than the period, it still has a probability of being released.
@@ -416,14 +520,15 @@ public class MixedCriticalSystem {
         // 要释放的资源
         Resource releaseResource = totalResources.get(runningTask.accessResourceIndex.get(runningTask.requestResourceTh));
 
+        // 获取help task
+        com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = null;
+
         //  runningTask 迁移到其他 cpu 核上运行
         if (runningTask.immigrateRunningCpuCore != -1)
         {
             // 弹出在其迁移 cpu 核上运行的优先级
             runningTask.priorities.pop();
 
-            // 获取help task
-            com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = null;
             for (ProcedureControlBlock waitingTask : releaseResource.waitingQueue)
             {
                 if (waitingTask.baseRunningCpuCore == runningTask.immigrateRunningCpuCore)
@@ -445,6 +550,7 @@ public class MixedCriticalSystem {
                 waitingTasksPerCore.get(runningTask.immigrateRunningCpuCore).remove(helpTask);
                 runningTaskPerCore.set(runningTask.immigrateRunningCpuCore, helpTask);
                 ChangeTaskState(helpTask, "");
+                ChangeCpuTaskState(runningTask.immigrateRunningCpuCore, helpTask, "");
             }
         }
 
@@ -456,8 +562,11 @@ public class MixedCriticalSystem {
         ++runningTask.requestResourceTh;
         if (runningTask.systemCriticalityWhenAccessResource == 1)
             runningTask.executedTime -= (releaseResource.c_high - releaseResource.c_low);
+
         // runningTask 记录事件发生的时间点
         TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "unlocked", systemClock, releaseResource.id));
+        // cpu 上也需要记录释放资源的时间点
+        cpuEventTimePointRecords.get(runningTask.immigrateRunningCpuCore == -1 ? runningTask.baseRunningCpuCore : runningTask.immigrateRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "unlocked", systemClock, releaseResource.id));
 
         // 2.有任务在等待该资源
         if (!releaseResource.waitingQueue.isEmpty())
@@ -471,9 +580,6 @@ public class MixedCriticalSystem {
             // waitingTask 访问资源的类型
             waitingTask.isAccessGlobalResource = releaseResource.isGlobal;
             waitingTask.isAccessLocalResource = !waitingTask.isAccessGlobalResource;
-
-            // 优先级 boosted
-            waitingTask.priorities.push(releaseResource.ceiling.get(waitingTask.baseRunningCpuCore));
 
             // task state：access-resource
             ChangeTaskState(waitingTask, "access-resource");
@@ -504,18 +610,13 @@ public class MixedCriticalSystem {
                 // task state :1. end event; 2. symbol execution --> completion
                 ChangeTaskState(runningTask, "completion");
                 TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "completion", systemClock, -1));
-            }else
-            {
+            }else {
                 // runningTask 返回到 base running cpu core 上继续执行
                 waitingTasksPerCore.get(runningTask.baseRunningCpuCore).add(runningTask);
 
                 // task state: 1. help-access-resource --> blocked(immigrate to base cpu core)
                 ChangeTaskState(runningTask, "blocked");
             }
-
-            // immigrate cpu core 上显示: execution --> non task execution
-            ChangeCpuTaskState(runningTask.immigrateRunningCpuCore, null, "");
-            runningTaskPerCore.set(runningTask.immigrateRunningCpuCore, null);
 
             // runningTask 取消迁移
             runningTask.immigrateRunningCpuCore = -1;
@@ -640,9 +741,6 @@ public class MixedCriticalSystem {
                 // 自旋等待资源任务在 cpu 核上
                 if (helpTask.dynamicTaskId == runningTaskPerCore.get(helpTask.baseRunningCpuCore).dynamicTaskId)
                 {
-                    // 任务迁移
-                    preemptedTask.immigrateRunningCpuCore = helpTask.baseRunningCpuCore;
-
                     // helpTask 切换任务状态 --> help-direct-spinning(helpTask 帮助 preemptedTask 执行)
                     // preemptedTask 切换任务状态 --> help-access-resource(preempted task 借助 helpTask 进行执行)
                     ChangeTaskState(helpTask, "help-direct-spinning");
@@ -653,11 +751,12 @@ public class MixedCriticalSystem {
                     // helpTask 放回对应 cpu 核上的 waitingTasksPerCore, preemptedTask 放在 helpTask 对应的 cpu 核上执行
                     waitingTasksPerCore.get(helpTask.baseRunningCpuCore).add(helpTask);
 
-
                     // preemptedTask 用比 helpTask 高一点的优先级在 helpTask 对应的 cpu 核上运行
                     // 在此之前，需要判断 preemptedTask 是否已经迁移过了
                     if (preemptedTask.immigrateRunningCpuCore != -1)
                         preemptedTask.priorities.pop();
+
+                    // 任务迁移
                     preemptedTask.immigrateRunningCpuCore = helpTask.baseRunningCpuCore;
                     runningTaskPerCore.set(helpTask.baseRunningCpuCore, preemptedTask);
                     preemptedTask.priorities.push(helpTask.priorities.peek() + 1);
@@ -733,7 +832,16 @@ public class MixedCriticalSystem {
         for (com.example.serveside.response.TaskInformation releaseTaskInformation : releaseTaskInformations)
         {
             com.example.serveside.response.GanttInformation ganttInformation = new com.example.serveside.response.GanttInformation(TaskEventInformationRecords.get(releaseTaskInformation.getDynamicPid()), TaskEventTimePointsRecords.get(releaseTaskInformation.getDynamicPid()), timeAxisLength);
-            taskGanttInformations.add(new com.example.serveside.response.TaskGanttInformation(releaseTaskInformation.getStaticPid(), releaseTaskInformation.getDynamicPid(), totalTasks.get(releaseTaskInformation.getStaticPid()).baseRunningCpuCore, ganttInformation));
+
+            int baseRunningCPUCore = -1;
+            for (ProcedureControlBlock staticTask : totalTasks)
+                if (releaseTaskInformation.getStaticPid() == staticTask.staticTaskId)
+                {
+                    baseRunningCPUCore = staticTask.baseRunningCpuCore;
+                    break;
+                }
+
+            taskGanttInformations.add(new com.example.serveside.response.TaskGanttInformation(releaseTaskInformation.getStaticPid(), releaseTaskInformation.getDynamicPid(), baseRunningCPUCore, ganttInformation));
         }
 
         return new com.example.serveside.response.ToTalInformation(cpuGanttInformations, releaseTaskInformations, taskGanttInformations);
@@ -748,7 +856,8 @@ public class MixedCriticalSystem {
 
         for (ArrayList<com.example.serveside.response.EventInformation> TaskEventInformations : TaskEventInformationRecords)
         {
-            timeAxisLength = Math.max(timeAxisLength, TaskEventInformations.get(TaskEventInformations.size() - 1).getEndTime());
+            if (!TaskEventInformations.isEmpty())
+                timeAxisLength = Math.max(timeAxisLength, TaskEventInformations.get(TaskEventInformations.size() - 1).getEndTime());
         }
     }
 }

@@ -90,7 +90,7 @@ public class ProcedureControlBlock {
         deadline = _period;
         utilization = _utilization;
         staticTaskId = _task_id;
-        totalNeededTime = (int)(utilization * period);
+        totalNeededTime = (int)utilization * period;
         resourceAccessTime = new ArrayList<>();
         accessResourceIndex = new ArrayList<>();
 

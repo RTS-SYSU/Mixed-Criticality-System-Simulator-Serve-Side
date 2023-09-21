@@ -195,20 +195,24 @@ public class SimpleSystemGenerator {
     public ArrayList<ProcedureControlBlock> testGenerateTask(){
         ArrayList<ProcedureControlBlock> tasks = new ArrayList<>();
 
-        ProcedureControlBlock task = new ProcedureControlBlock(1, 50, 0.1, 0);
+        ProcedureControlBlock task = new ProcedureControlBlock(996, 50, 0.1, 0);
         task.criticality = 1;
+        task.totalNeededTime = 5;
         tasks.add(task);
 
-        task = new ProcedureControlBlock(2, 40, 0.1, 1);
+        task = new ProcedureControlBlock(996, 50, 0.1, 1);
         task.criticality = 1;
+        task.totalNeededTime = 5;
         tasks.add(task);
 
-        task = new ProcedureControlBlock(3, 60, 0.1, 2);
+        task = new ProcedureControlBlock(998, 30, 0.1, 2);
         task.criticality = 1;
+        task.totalNeededTime = 3;
         tasks.add(task);
 
-        task = new ProcedureControlBlock(4, 40, 0.1, 3);
+        task = new ProcedureControlBlock(998, 50, 0.1, 3);
         task.criticality = 1;
+        task.totalNeededTime = 5;
         tasks.add(task);
 
         return tasks;
@@ -218,45 +222,45 @@ public class SimpleSystemGenerator {
     public ArrayList<Resource> testGenerateResources()
     {
         ArrayList<Resource> resources = new ArrayList<>();
-        Resource resource = new Resource(0, 3, 4);
-        resources.add(resource);
+        resources.add(new Resource(0, 3, 3));
         return resources;
     }
 
     public ArrayList<ArrayList<ProcedureControlBlock>> testGenerateResourceUsage(ArrayList<ProcedureControlBlock> tasks, ArrayList<Resource> resources)
     {
-        ProcedureControlBlock taskTmp = tasks.get(0);
-        // task 1
+        ProcedureControlBlock taskTmp;
+
+        // task 0
+        taskTmp = tasks.get(0);
         taskTmp.accessResourceIndex.add(0);
         taskTmp.resourceAccessTime.add(1);
 
-
-        // task 2
+        // task 1
         taskTmp = tasks.get(1);
         taskTmp.accessResourceIndex.add(0);
         taskTmp.resourceAccessTime.add(1);
 
-        // task 4
+        // task 3
         taskTmp = tasks.get(3);
         taskTmp.accessResourceIndex.add(0);
         taskTmp.resourceAccessTime.add(1);
 
         // 分配 CPU
         ArrayList<ArrayList<ProcedureControlBlock>> generatedTaskSets = new ArrayList<>();
-        ArrayList<ProcedureControlBlock> cpu1 = new ArrayList<>();
+        ArrayList<ProcedureControlBlock> cpu0 = new ArrayList<>();
         tasks.get(0).baseRunningCpuCore = 0;
-        tasks.get(1).baseRunningCpuCore = 0;
-        cpu1.add(tasks.get(0));
-        cpu1.add(tasks.get(1));
+        tasks.get(2).baseRunningCpuCore = 0;
+        cpu0.add(tasks.get(0));
+        cpu0.add(tasks.get(2));
 
-        ArrayList<ProcedureControlBlock> cpu2 = new ArrayList<>();
-        tasks.get(2).baseRunningCpuCore = 1;
+        ArrayList<ProcedureControlBlock> cpu1 = new ArrayList<>();
+        tasks.get(1).baseRunningCpuCore = 1;
         tasks.get(3).baseRunningCpuCore = 1;
-        cpu2.add(tasks.get(2));
-        cpu2.add(tasks.get(3));
+        cpu1.add(tasks.get(1));
+        cpu1.add(tasks.get(3));
 
+        generatedTaskSets.add(cpu0);
         generatedTaskSets.add(cpu1);
-        generatedTaskSets.add(cpu2);
 
         Random ran = new Random();
         // generate WCCT for every task
