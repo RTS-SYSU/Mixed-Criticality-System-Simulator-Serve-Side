@@ -90,7 +90,7 @@ public class ProcedureControlBlock {
         deadline = _period;
         utilization = _utilization;
         staticTaskId = _task_id;
-        totalNeededTime = (int)utilization * period;
+        totalNeededTime = (int)(utilization * period);
         resourceAccessTime = new ArrayList<>();
         accessResourceIndex = new ArrayList<>();
 
@@ -123,7 +123,7 @@ public class ProcedureControlBlock {
         deadline = copy.period;
         utilization = copy.utilization;
         staticTaskId = copy.staticTaskId;
-        totalNeededTime = (int)(utilization * period);
+        totalNeededTime = copy.totalNeededTime;
         resourceAccessTime = copy.resourceAccessTime;
         accessResourceIndex = copy.accessResourceIndex;
         baseRunningCpuCore = copy.baseRunningCpuCore;

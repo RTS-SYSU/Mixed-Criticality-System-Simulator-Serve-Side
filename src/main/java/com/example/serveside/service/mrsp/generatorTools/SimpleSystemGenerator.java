@@ -223,6 +223,7 @@ public class SimpleSystemGenerator {
     {
         ArrayList<Resource> resources = new ArrayList<>();
         resources.add(new Resource(0, 3, 3));
+        resources.add(new Resource(1, 3, 3));
         return resources;
     }
 
@@ -249,8 +250,9 @@ public class SimpleSystemGenerator {
         ArrayList<ArrayList<ProcedureControlBlock>> generatedTaskSets = new ArrayList<>();
         ArrayList<ProcedureControlBlock> cpu0 = new ArrayList<>();
         tasks.get(0).baseRunningCpuCore = 0;
-        tasks.get(2).baseRunningCpuCore = 0;
         cpu0.add(tasks.get(0));
+
+        tasks.get(2).baseRunningCpuCore = 0;
         cpu0.add(tasks.get(2));
 
         ArrayList<ProcedureControlBlock> cpu1 = new ArrayList<>();

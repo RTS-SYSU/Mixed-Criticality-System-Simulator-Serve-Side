@@ -111,6 +111,9 @@ public class MixedCriticalSystem {
     /* Record the release task's information and send it to client-side. */
     public static List<TaskInformation> releaseTaskInformationRecords;
 
+    /* 发生关键级切换的时间点 */
+    public static Integer criticalitySwitchTime;
+
     public static void main(String[] args)
     {
         SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(MIN_PERIOD, MAX_PERIOD, TOTAL_CPU_CORE_NUM,
@@ -215,7 +218,7 @@ public class MixedCriticalSystem {
                     taskState.staticTaskId, taskState.dynamicTaskId, taskState.runningCpuCore, taskGanttInformation));
         }
 
-        return new com.example.serveside.response.ToTalInformation(ganttInformations, releaseTaskInformationRecords, taskGanttInformations);
+        return new com.example.serveside.response.ToTalInformation(ganttInformations, releaseTaskInformationRecords, taskGanttInformations, criticalitySwitchTime);
     }
 
     public static void SystemExecute()
@@ -228,6 +231,8 @@ public class MixedCriticalSystem {
         releaseTaskNum = 0;
         // Initialize the criticality_indicator: low criticality
         criticality_indicator = 0;
+        // 系统关键级切换的时间点
+        criticalitySwitchTime = -1;
 
         // record the times of the task that has been finished.
         taskFinishTimes = new int[totalTasks.size()];
@@ -492,12 +497,9 @@ public class MixedCriticalSystem {
 
                 // if computeAndSpinTime > WCCT_low, upgrade criticality to high
                 if (runningTask.computeAndSpinTime > runningTask.WCCT_low && criticality_indicator == 0) {
+                    criticalitySwitchTime = systemClock;
                     criticality_indicator = 1;
                     ModifyIndicatorEvent(runningTask, false);
-
-                    // Record the time point that the system criticality switch.
-                    for (ArrayList<EventTimePoint> cpuEventTimePoints : CPUEventTimePointsRecords)
-                        cpuEventTimePoints.add(new EventTimePoint(-1, -1, "criticality-switch", systemClock, -1));
                 }
             }
 
@@ -868,7 +870,7 @@ public class MixedCriticalSystem {
                 // 2. runningTask 正在访问 global resource
                 // 3. runningTask 访问 local resource，但是 runningTask 优先级被短暂提升
                 // 除此之外，我们还需要确保 waitingTask 此前没有执行过
-                if (runningTask.basePriority < waitingTask.basePriority && waitingTask.executedTime == 0)
+                if (runningTask != null && runningTask.basePriority < waitingTask.basePriority && waitingTask.executedTime == 0)
                 {
                     taskStates.get(waitingTask.dynamicTaskId - 1).addState(TASK_STATE.ARRIVAL_BLOCK, systemClock);
                 }

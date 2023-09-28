@@ -4,6 +4,8 @@ import com.example.serveside.response.EventTimePoint;
 import com.example.serveside.response.ToTalInformation;
 import com.example.serveside.service.mrsp.generatorTools.SimpleSystemGenerator;
 
+import javax.lang.model.type.ArrayType;
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class MixedCriticalSystem {
@@ -18,7 +20,7 @@ public class MixedCriticalSystem {
     public static int MIN_PERIOD = 20;
 
     /* The maximum period for every task. */
-    public static int MAX_PERIOD = 1000;
+    public static int MAX_PERIOD = 500;
 
     /* The max number of the access resource time. */
     public static int NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE = 2;
@@ -98,6 +100,10 @@ public class MixedCriticalSystem {
     /* The time axis length*/
     public static Integer timeAxisLength;
 
+    /* 发生关键级切换的时间点 */
+    public static Integer criticalitySwitchTime;
+
+
     public static void main(String[] args)
     {
         SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(MIN_PERIOD, MAX_PERIOD, TOTAL_CPU_CORE_NUM,
@@ -162,6 +168,12 @@ public class MixedCriticalSystem {
         // 目前已经发布的任务个数
         releaseTaskNum = 0;
 
+        // 初始化系统的关键级
+        criticality_indicator = 0;
+
+        // 初始化发生关键级切换的时间点
+        criticalitySwitchTime = -1;
+
         // 每一种任务执行完的次数
         taskFinishTimes = new int[totalTasks.size()];
 
@@ -205,6 +217,29 @@ public class MixedCriticalSystem {
         while (!SystemSuspend())
             ExecuteOnceClock();
 
+        // 终止所有当前所有运行在 cpu 上的任务的状态
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
+            // 1. 终止 cpu 上的状态
+            ChangeCpuTaskState(i, null, "");
+            // 2. 终止 running 的状态
+            if (runningTaskPerCore.get(i) != null)
+            {
+                ArrayList<com.example.serveside.response.EventInformation> taskEventInformation = TaskEventInformationRecords.get(runningTaskPerCore.get(i).dynamicTaskId);
+                taskEventInformation.get(taskEventInformation.size() - 1).setEndTime(systemClock);
+            }
+        }
+
+        // 终止所有没有运行在 cpu 上的任务的状态
+        for (ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks : waitingTasksPerCore)
+        {
+            // 1. 终止 waiting Task 的状态
+            for (ProcedureControlBlock waitingTask : waitingTasks) {
+                ArrayList<com.example.serveside.response.EventInformation> taskEventInformation = TaskEventInformationRecords.get(waitingTask.dynamicTaskId);
+                if (!taskEventInformation.isEmpty())
+                    taskEventInformation.get(taskEventInformation.size() - 1).setEndTime(systemClock);
+            }
+        }
     }
 
     /*
@@ -232,8 +267,9 @@ public class MixedCriticalSystem {
     * */
     public static void ExecuteOnceClock()
     {
-        if (systemClock == 4 || systemClock == 63)
-            System.out.print("HelloWorld");
+//        System.out.printf("System Clock: %d \n", systemClock);
+//        if (systemClock == 16 || systemClock == 35 || systemClock == 49 || systemClock == 57)
+//            System.out.print("Hello World");
         ExecuteTasks();
 
         IncreaseElapsedTime();
@@ -256,7 +292,8 @@ public class MixedCriticalSystem {
             // 1. 任务不需要请求资源
             // 2. 任务已经请求完了所有的资源
             // 3. 任务正在等待资源(direct spinning)
-            if (runningTask.resourceAccessTime.isEmpty() || runningTask.requestResourceTh >= runningTask.resourceAccessTime.size() || runningTask.spin)
+            // 4. 任务已经获取到资源了
+            if (runningTask.resourceAccessTime.isEmpty() || runningTask.requestResourceTh >= runningTask.resourceAccessTime.size() || runningTask.spin || runningTask.isAccessGlobalResource || runningTask.isAccessLocalResource)
                 continue;
 
             // 任务到申请资源的时间点了
@@ -284,6 +321,16 @@ public class MixedCriticalSystem {
                     ChangeCpuTaskState(runningTask.baseRunningCpuCore, runningTask, "direct-spinning");
                     // cpu 新增事件发生时间点：lock-attempt
                     cpuEventTimePointRecords.get(runningTask.baseRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "lock-attempt", systemClock, accquireResource.id));
+
+                    // 处理 indirect spinning 的情况：高优先级任务抢占低优先级的任务，然后高优先级的任务申请访问资源时进行自旋
+                    ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(runningTask.baseRunningCpuCore);
+                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
+                    {
+                        if (waitingTask.basePriority < runningTask.basePriority && waitingTask.priorities.peek() < runningTask.priorities.peek())
+                        {
+                            ChangeTaskState(waitingTask, "indirect-spinning");
+                        }
+                    }
 
                 }
                 // accquireResource 没有被占据，空闲的
@@ -320,14 +367,17 @@ public class MixedCriticalSystem {
     {
         Random random = new Random();
 
+        int releaseTaskStaticId;
+
         if (systemClock == 1)
         {
-            // task 1
-            timeSinceLastRelease[1] = 0;
+            releaseTaskStaticId = 0;
+            // reset
+            timeSinceLastRelease[releaseTaskStaticId] = 0;
             // initialize the release task and set its pid.
-            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(1));
+            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
             releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(1).baseRunningCpuCore).add(releaseTask);
+            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
 
             // 记录一下发布的任务的基本信息
             releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
@@ -341,12 +391,13 @@ public class MixedCriticalSystem {
             // 创建一个新的 taskEventInformation 来保存任务的运行过程
             TaskEventInformationRecords.add(new ArrayList<>());
 
-            // task 0
-            timeSinceLastRelease[0] = 0;
+            releaseTaskStaticId = 1;
+            // reset
+            timeSinceLastRelease[releaseTaskStaticId] = 0;
             // initialize the release task and set its pid.
-            releaseTask = new ProcedureControlBlock(totalTasks.get(0));
+            releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
             releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(0).baseRunningCpuCore).add(releaseTask);
+            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
 
             // 记录一下发布的任务的基本信息
             releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
@@ -362,37 +413,19 @@ public class MixedCriticalSystem {
 
             ++timeSinceLastRelease[2];
             ++timeSinceLastRelease[3];
+
             return ;
         }
 
-
         if (systemClock == 3)
         {
-            // task 2
-            timeSinceLastRelease[2] = 0;
+            releaseTaskStaticId = 2;
+            // reset
+            timeSinceLastRelease[releaseTaskStaticId] = 0;
             // initialize the release task and set its pid.
-            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(2));
+            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
             releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(2).baseRunningCpuCore).add(releaseTask);
-
-            // 记录一下发布的任务的基本信息
-            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
-
-            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
-
-            // 记录一下任务发布的时间点
-            TaskEventTimePointsRecords.add(new ArrayList<>());
-            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
-
-            // 创建一个新的 taskEventInformation 来保存任务的运行过程
-            TaskEventInformationRecords.add(new ArrayList<>());
-
-            // task 3
-            timeSinceLastRelease[3] = 0;
-            // initialize the release task and set its pid.
-            releaseTask = new ProcedureControlBlock(totalTasks.get(3));
-            releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(3).baseRunningCpuCore).add(releaseTask);
+            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
 
             // 记录一下发布的任务的基本信息
             releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
@@ -408,11 +441,41 @@ public class MixedCriticalSystem {
 
             ++timeSinceLastRelease[0];
             ++timeSinceLastRelease[1];
+            ++timeSinceLastRelease[3];
+
             return ;
         }
 
+        if (systemClock == 4)
+        {
+            releaseTaskStaticId = 3;
+            // reset
+            timeSinceLastRelease[releaseTaskStaticId] = 0;
+            // initialize the release task and set its pid.
+            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
+            releaseTask.dynamicTaskId = releaseTaskNum++;
+            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
 
-        if (systemClock < 13)
+            // 记录一下发布的任务的基本信息
+            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
+
+            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
+
+            // 记录一下任务发布的时间点
+            TaskEventTimePointsRecords.add(new ArrayList<>());
+            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
+
+            // 创建一个新的 taskEventInformation 来保存任务的运行过程
+            TaskEventInformationRecords.add(new ArrayList<>());
+
+            ++timeSinceLastRelease[0];
+            ++timeSinceLastRelease[1];
+            ++timeSinceLastRelease[2    ];
+
+            return ;
+        }
+
+        if (systemClock < 14)
             return ;
 
         for (int i = 0; i < totalTasks.size(); ++i)
@@ -423,6 +486,7 @@ public class MixedCriticalSystem {
                 // if at HI, low task be seen finished
                 if (totalTasks.get(i).criticality < criticality_indicator){
                     ++taskFinishTimes[totalTasks.get(i).staticTaskId];
+                    continue;
                 }
 
                 // reset
@@ -489,13 +553,13 @@ public class MixedCriticalSystem {
             }
         }
 
-        // 3. 处理使用完资源的任务(需要加上条件判断：当前有任务在执行+任务有在访问资源)
+        // 4. 处理使用完资源的任务(需要加上条件判断：当前有任务在执行+任务有在访问资源)
         for (ProcedureControlBlock runningTask : runningTaskPerCore)
             // 资源使用完，释放资源
             if (runningTask != null && (runningTask.isAccessLocalResource || runningTask.isAccessGlobalResource) && runningTask.remainResourceComputationTime == 0)
                 ReleaseResource(runningTask);
 
-        // 4. 处理在 baseRunningCpuCore 上完成计算的的任务
+        // 5. 处理在 baseRunningCpuCore 上完成计算的的任务
         for (ProcedureControlBlock runningTask : runningTaskPerCore)
             // 需要注意：此时 task 不能够访问资源（在高关键级下面，executedTime 可能会超过 totalNeededTime）
             if (runningTask != null && !runningTask.isAccessLocalResource && !runningTask.isAccessGlobalResource && runningTask.executedTime == runningTask.totalNeededTime)
@@ -513,6 +577,119 @@ public class MixedCriticalSystem {
                 ChangeCpuTaskState(runningTask.baseRunningCpuCore, null, "");
             }
 
+        // 6. 判断 runningTaskPerCore 上的 task 和 waitingTask 上的 helpTask 的 computeAndSpin 有没有超过 WCCT_low
+        if (criticality_indicator != 1)
+        {
+            // 在 cpu 上运行的任务/running task
+            for (ProcedureControlBlock runningTask : runningTaskPerCore)
+            {
+                if (runningTask != null && runningTask.computeAndSpinTime > runningTask.WCCT_low)
+                {
+                    criticalitySwitchTime = systemClock;
+                    System.out.printf("Static Task Id : %d (Dynamic Task Id : %d) cause Criticality Switch at System Clock : %d\n", runningTask.staticTaskId, runningTask.dynamicTaskId, systemClock);
+                    criticality_indicator = 1;
+                    break;
+                }
+            }
+
+            // 在 waitingTaskPerCore 上的 helpTask
+            if (criticality_indicator != 1)
+            {
+                for (ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks : waitingTasksPerCore)
+                {
+                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
+                    {
+                        if (waitingTask.isHelp && waitingTask.computeAndSpinTime > waitingTask.WCCT_low)
+                        {
+                            criticalitySwitchTime = systemClock;
+                            System.out.printf("Static Task Id : %d (Dynamic Task Id : %d) cause Criticality Switch at System Clock : %d\n", waitingTask.staticTaskId, waitingTask.dynamicTaskId, systemClock);
+                            criticality_indicator = 1;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 终止低关键级任务的执行
+        if (criticality_indicator == 1)
+        {
+            // 1. 处理在 cpu 上运行的低关键级任务
+            for (int i = 0; i < runningTaskPerCore.size(); ++i)
+            {
+                com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+
+                if (runningTask == null)
+                    continue;
+
+                // 高关键级下不需要被终止的任务
+                // 1. 高关键级任务
+                if (runningTask.criticality >= criticality_indicator)
+                    continue;
+
+                // 2. 任务正在访问资源
+                if (runningTask.isAccessGlobalResource || runningTask.isAccessLocalResource)
+                    continue;
+
+                // 不满足前面两个条件的进程可以被终止(killed)
+                // 1. 低关键级的任务 && 2. (任务 normal-execution || 任务 spin)
+
+                // cpu 核上运行的任务变为空
+                runningTaskPerCore.set(i, null);
+
+                // cpu 甘特图上终止 runningTask 的运行, 并显示 shut-down 符号
+                ChangeCpuTaskState(i, null, "");
+                cpuEventTimePointRecords.get(i).add(new EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "killed", systemClock, -1));
+
+                // task 甘特图上终止运行，并显示 shut-down 符号
+                ChangeTaskState(runningTask, "killed");
+                TaskEventTimePointsRecords.get(runningTask.dynamicTaskId).add(new EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "killed", systemClock, -1));
+
+                // task 标记为已经执行完一次
+                ++taskFinishTimes[runningTask.staticTaskId];
+
+                // 如果任务在资源的等待队列当中，将其移除
+                if (runningTask.spin)
+                {
+                    Resource accquireResource = totalResources.get(runningTask.accessResourceIndex.get(runningTask.requestResourceTh));
+                    accquireResource.waitingQueue.remove(runningTask);
+                }
+            }
+
+            // 2. 处理在 cpu 等待队列上的任务
+            for (ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks : waitingTasksPerCore)
+            {
+                Iterator<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasksIterator = waitingTasks.iterator();
+                while (waitingTasksIterator.hasNext())
+                {
+                    com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask = waitingTasksIterator.next();
+
+                    // 终止任务需要满足的条件
+                    // 1. 低关键级任务
+                    // 2. 任务没有访问资源
+                    // 3. 任务没有启动帮助机制（help-mechanism）
+                    if (waitingTask.criticality < criticality_indicator && !waitingTask.isAccessLocalResource && !waitingTask.isAccessGlobalResource && !waitingTask.isHelp)
+                    {
+                        // 将 waitingTask 从等待列表中移除
+                        waitingTasksIterator.remove();
+
+                        // 任务甘特图上显示终止/shut-down
+                        ChangeTaskState(waitingTask, "killed");
+                        TaskEventTimePointsRecords.get(waitingTask.dynamicTaskId).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "killed", systemClock, -1));
+
+                        // task 标记为已经执行完一次
+                        ++taskFinishTimes[waitingTask.staticTaskId];
+
+                        // 如果任务此时正在等待资源，将其从等待队列中移除
+                        if (waitingTask.spin)
+                        {
+                            Resource accquireResource = totalResources.get(waitingTask.accessResourceIndex.get(waitingTask.requestResourceTh));
+                            accquireResource.waitingQueue.remove(waitingTask);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public static void ReleaseResource(ProcedureControlBlock runningTask)
@@ -547,10 +724,12 @@ public class MixedCriticalSystem {
 
                 // 设置 immigrateRunningCpuCore 上执行的任务为 helpTask
                 // helpTask 回归 immigrateRunningCpuCore.
+                // immigrateRunningCpuCore 甘特图上显示 switch-task 标记
                 waitingTasksPerCore.get(runningTask.immigrateRunningCpuCore).remove(helpTask);
                 runningTaskPerCore.set(runningTask.immigrateRunningCpuCore, helpTask);
                 ChangeTaskState(helpTask, "");
                 ChangeCpuTaskState(runningTask.immigrateRunningCpuCore, helpTask, "");
+                cpuEventTimePointRecords.get(helpTask.baseRunningCpuCore).add(new EventTimePoint(helpTask.staticTaskId, helpTask.dynamicTaskId, "switch-task", systemClock, -1));
             }
         }
 
@@ -580,6 +759,7 @@ public class MixedCriticalSystem {
             // waitingTask 访问资源的类型
             waitingTask.isAccessGlobalResource = releaseResource.isGlobal;
             waitingTask.isAccessLocalResource = !waitingTask.isAccessGlobalResource;
+            waitingTask.spin = false;
 
             // task state：access-resource
             ChangeTaskState(waitingTask, "access-resource");
@@ -596,6 +776,19 @@ public class MixedCriticalSystem {
                 // 加入 preemptedAccessResourceTasks 当中去判断能不能启动 help mechanism
                 preemptedAccessResourceTasks.add(waitingTask);
             }
+
+            // waitingTask 获取到资源之后
+            for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasksPerCore.get(waitingTask.baseRunningCpuCore))
+            {
+                ArrayList<com.example.serveside.response.EventInformation> _taskInformations = TaskEventInformationRecords.get(_waitingTask.dynamicTaskId);
+                if (!_taskInformations.isEmpty() && _taskInformations.get(_taskInformations.size() - 1).getState().equals("indirect-spinning"))
+                {
+                    // 由 indirect-spinning-delay 变成 blocked
+                    ChangeTaskState(_waitingTask, "blocked");
+                }
+            }
+
+
         }
 
         // runningTask 是迁移到别人的核心上进行执行的话，需要迁移回去
@@ -665,6 +858,11 @@ public class MixedCriticalSystem {
 
                 // cpu 甘特图发生变化: 运行的任务发生变化(state 根据任务自身的状态来决定)
                 ChangeCpuTaskState(i, waitingTask, "");
+                // cpu 甘特图加入 switch-task 标号
+                cpuEventTimePointRecords.get(i).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task", systemClock, -1));
+
+                // 将 waitingTask 从 preemptedAccessResourceTasks 中移除出来（如果有的话）
+                preemptedAccessResourceTasks.remove(waitingTask);
 
                 continue;
             }
@@ -679,17 +877,60 @@ public class MixedCriticalSystem {
                 // 判断 runningTask 是否满足迁移条件：
                 if (runningTask.isAccessGlobalResource)
                     preemptedAccessResourceTasks.add(runningTask);
-                else
-                    waitingTasks.add(runningTask);
 
-                // 需要将 waitingTask 从 waitingTasks 中移出来
+                // runningTask 放入原生的 waitingTasks 中
+                waitingTasksPerCore.get(runningTask.baseRunningCpuCore).add(runningTask);
+
+                // 需要将 waitingTask 从 waitingTasks 以及 preempttedAccessResourceTasks(如果有的话)中移出来
                 waitingTasks.remove(0);
+                preemptedAccessResourceTasks.remove(waitingTask);
 
                 // runningTask 的状态也需要发生变化：blocked
                 ChangeTaskState(runningTask, "blocked");
 
                 // cpu 甘特图发生变化 : 运行的任务发生变化(state 根据任务自身的状态来决定)
                 ChangeCpuTaskState(i, waitingTask, "");
+
+                // cpu 甘特图中标出 switch task
+                cpuEventTimePointRecords.get(i).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task", systemClock, -1));
+
+                // 处理 indirect-spinning 的情况
+                // low-priority/runningTask  --> 关闭 indirect-spinning
+                if (runningTask.spin)
+                {
+                    // waitingTask 优先级最高，所以就省去了判断 waitingTask.basePriority > _waitingTask.basePriority
+                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
+                    {
+                        ArrayList<com.example.serveside.response.EventInformation> taskInformations = TaskEventInformationRecords.get(_waitingTask.dynamicTaskId);
+                        if (!taskInformations.isEmpty() && taskInformations.get(taskInformations.size() - 1).getState().equals("indirect-spinning"))
+                        {
+                            ChangeTaskState(_waitingTask, "blocked");
+                        }
+                    }
+                }
+
+                // 如果 runningTask 是迁移到 immigrate running cpu core 上运行的话，需要修改 helpTask（提供帮助机制）的 isHelp 为 false
+                // 除此之外，helpTask 的状态也需要发生变化: direct-spinning --> blocked.
+                // 除此之外，在 waitingTasks 中的任务状态也需要发生变化 : indirect spinning -- > blocked /  arrival blocking -- > blocked.
+                if (runningTask.immigrateRunningCpuCore != -1)
+                {
+                    com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = null;
+                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
+                    {
+                        if (_waitingTask.isHelp)
+                        {
+                            _waitingTask.isHelp = false;
+                            break;
+                        }
+                    }
+                    runningTask.immigrateRunningCpuCore = -1;
+
+                    // waitingTasks 中的任务都需要变成 blocked
+                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
+                        ChangeTaskState(_waitingTask, "blocked");
+
+
+                }
             }
         }
 
@@ -726,10 +967,13 @@ public class MixedCriticalSystem {
                 preemptedTask.immigrateRunningCpuCore = -1;
 
                 // base cpu core 上运行的任务发生变化: access-resource-task
+                // base cpu core 甘特图上显示 switch-task
                 ChangeCpuTaskState(preemptedTask.baseRunningCpuCore, preemptedTask, "");
-
-                // 将 preemptedATask 从队列当中删除
+                cpuEventTimePointRecords.get(preemptedTask.baseRunningCpuCore).add(new EventTimePoint(preemptedTask.staticTaskId, preemptedTask.dynamicTaskId, "switch-task", systemClock, accessResource.id));
+                // 将 preemptedATask 从队列(preemptedTask 以及 waitingTasksPerCore 队列)当中删除
                 iterator.remove();
+                waitingTasksPerCore.get(preemptedTask.baseRunningCpuCore).remove(preemptedTask);
+
                 continue;
             }
 
@@ -738,7 +982,7 @@ public class MixedCriticalSystem {
             for (ProcedureControlBlock helpTask : accessResource.waitingQueue)
             {
                 // 1. 自旋等待资源的任务可以提供帮助
-                // 自旋等待资源任务在 cpu 核上
+                // 自旋等待资源任务在 cpu 核上自旋，可以提供帮助
                 if (helpTask.dynamicTaskId == runningTaskPerCore.get(helpTask.baseRunningCpuCore).dynamicTaskId)
                 {
                     // helpTask 切换任务状态 --> help-direct-spinning(helpTask 帮助 preemptedTask 执行)
@@ -762,14 +1006,111 @@ public class MixedCriticalSystem {
                     preemptedTask.priorities.push(helpTask.priorities.peek() + 1);
 
                     // immigrate cpu core 上运行的任务发生变化：help-task --> access-resource-task
+                    // immigrate cpu core 上的甘特图显示 switch-task
                     ChangeCpuTaskState(preemptedTask.immigrateRunningCpuCore, preemptedTask, "help-access-resource");
+                    cpuEventTimePointRecords.get(preemptedTask.immigrateRunningCpuCore).add(new EventTimePoint(preemptedTask.staticTaskId, preemptedTask.dynamicTaskId, "switch-task", systemClock, accessResource.id));
 
                     // 将 preemptedATask 从队列当中删除
                     iterator.remove();
+                    waitingTasksPerCore.get(preemptedTask.baseRunningCpuCore).remove(preemptedTask);
+
                     break;
                 }
             }
         }
+
+        // 处理开启 indirect-spinning 的情况（任务又重新获得 cpu 的执行权）
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
+            com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+            if (runningTask == null)
+                continue;
+
+            // 1. 普通的任务自旋
+            // 2. help-mechanism: 启动帮助机制
+            if (runningTask.spin || runningTask.immigrateRunningCpuCore != -1)
+            {
+                // 开启 indirect-spinning 状态
+                for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasksPerCore.get(i))
+                {
+                    // 1. 如果是提供帮助机制的 task，则不需要由 help-access-resource 状态变成 indirect-spinning
+                    if (!waitingTask.isHelp && waitingTask.priorities.peek() < runningTask.priorities.peek())
+                    {
+                        ChangeTaskState(waitingTask, "indirect-spinning");
+                    }
+                }
+            }
+        }
+
+        // 处理 Arrival Blocking 的情况
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
+            if (waitingTasksPerCore.get(i).isEmpty())
+                continue;
+
+            com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+
+            // Arrival Blocking 发生的条件
+            // 1. waitingTask 刚刚到达，即还没有开始执行
+            // 2. waitingTask 的基础优先级比 runningTask 的基础优先级更高
+            // 3. runningTask 的运行时优先级(priorities.peek()) 比 waitingTask 的运行时优先级(priorities.peek()) 更高
+            ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(i);
+            for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
+            {
+                // 判断 Arrival Blocking 发生的情况
+                if (waitingTask.executedTime == 0)
+                {
+                    // 1. runningTask 本身就是在该 cpu core 上进行运行的
+                    if (runningTask.immigrateRunningCpuCore == -1 && waitingTask.basePriority > runningTask.basePriority && waitingTask.priorities.peek() < runningTask.priorities.peek())
+                    {
+                        ChangeTaskState(waitingTask, "arrival-blocking");
+                    }
+
+                    // 2. runningTask 是迁移到该 cpu 核上运行的
+                    if (runningTask.immigrateRunningCpuCore != -1)
+                    {
+                        // 先找出提供帮助的 task
+                        com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = null;
+                        for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
+                        {
+                            if (_waitingTask.isHelp)
+                            {
+                                helpTask = _waitingTask;
+                                break;
+                            }
+                        }
+
+                        // helpTask 的 优先级小于 waitingTask（因此helpTask本质上阻碍了waitingTask的执行）
+                        if (helpTask.basePriority < waitingTask.basePriority)
+                        {
+                            ChangeTaskState(waitingTask, "arrival-blocking");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 撤销 Arrival Blocking 的状态
+        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
+        {
+            if (waitingTasksPerCore.get(i).isEmpty())
+                continue;
+
+            com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+            ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(i);
+
+            // 撤销 Arrival Blocking 的时机 : 更高优先级的任务在执行
+            for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
+            {
+                ArrayList<com.example.serveside.response.EventInformation> taskInformations = TaskEventInformationRecords.get(waitingTask.dynamicTaskId);
+
+                if (!taskInformations.isEmpty() && taskInformations.get(taskInformations.size() - 1).getState().equals("arrival-blocking") && waitingTask.basePriority < runningTask.basePriority)
+                {
+                    ChangeTaskState(waitingTask, "blocked");
+                }
+            }
+        }
+
     }
 
     /*
@@ -788,8 +1129,12 @@ public class MixedCriticalSystem {
                 taskInformations.remove(taskInformations.size() - 1);
         }
 
-        // 如果不是 completion，那么就开启一个新的状态
-        if (!_state.equals("completion"))
+        // 新状态和旧状态状态一致（_arrival-blocking），那么就保持不变
+        if (!taskInformations.isEmpty() && taskInformations.get(taskInformations.size() - 1).getState().equals(_state))
+            return ;
+
+        // 如果既不是 completion，也不是 shutdown，那么就开启一个新的状态
+        if (!_state.equals("completion") && !_state.equals("killed"))
             taskInformations.add(new com.example.serveside.response.EventInformation(task, systemClock, _state));
     }
 
@@ -844,7 +1189,7 @@ public class MixedCriticalSystem {
             taskGanttInformations.add(new com.example.serveside.response.TaskGanttInformation(releaseTaskInformation.getStaticPid(), releaseTaskInformation.getDynamicPid(), baseRunningCPUCore, ganttInformation));
         }
 
-        return new com.example.serveside.response.ToTalInformation(cpuGanttInformations, releaseTaskInformations, taskGanttInformations);
+        return new com.example.serveside.response.ToTalInformation(cpuGanttInformations, releaseTaskInformations, taskGanttInformations, criticalitySwitchTime);
     }
 
     /*
@@ -859,5 +1204,26 @@ public class MixedCriticalSystem {
             if (!TaskEventInformations.isEmpty())
                 timeAxisLength = Math.max(timeAxisLength, TaskEventInformations.get(TaskEventInformations.size() - 1).getEndTime());
         }
+    }
+
+    /*
+    * 获取帮助 runningTask 运行的 helpTask(启动帮助机制)
+    * */
+    public static com.example.serveside.service.mrsp.entity.ProcedureControlBlock getHelpTask(ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks, int accessResourceId)
+    {
+        com.example.serveside.service.mrsp.entity.ProcedureControlBlock ret = null;
+
+        for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
+        {
+            // 条件1 : waitingTask 正处于 spin 状态
+            // 条件2 : waitingTask 和 runningTask 访问的是同一个资源
+            if (waitingTask.spin && accessResourceId == waitingTask.accessResourceIndex.get(waitingTask.requestResourceTh))
+            {
+                ret = waitingTask;
+                break;
+            }
+        }
+
+        return ret;
     }
 }
