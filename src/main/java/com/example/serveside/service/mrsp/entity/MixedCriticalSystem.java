@@ -326,7 +326,7 @@ public class MixedCriticalSystem {
                     ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(runningTask.baseRunningCpuCore);
                     for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
                     {
-                        if (waitingTask.basePriority < runningTask.basePriority && waitingTask.priorities.peek() < runningTask.priorities.peek())
+                        if (waitingTask.basePriority < runningTask.basePriority)
                         {
                             ChangeTaskState(waitingTask, "indirect-spinning");
                         }
@@ -881,7 +881,8 @@ public class MixedCriticalSystem {
                 // runningTask 放入原生的 waitingTasks 中
                 waitingTasksPerCore.get(runningTask.baseRunningCpuCore).add(runningTask);
 
-                // 需要将 waitingTask 从 waitingTasks 以及 preempttedAccessResourceTasks(如果有的话)中移出来
+                // 需要将 waitingTask 从 waitingTasks 以及 preemptedAccessResourceTasks(如果有的话)中移出来
+                // 感觉其实并不需要 preemptedAccessResourceTasks
                 waitingTasks.remove(0);
                 preemptedAccessResourceTasks.remove(waitingTask);
 
@@ -894,42 +895,11 @@ public class MixedCriticalSystem {
                 // cpu 甘特图中标出 switch task
                 cpuEventTimePointRecords.get(i).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task", systemClock, -1));
 
-                // 处理 indirect-spinning 的情况
-                // low-priority/runningTask  --> 关闭 indirect-spinning
-                if (runningTask.spin)
-                {
-                    // waitingTask 优先级最高，所以就省去了判断 waitingTask.basePriority > _waitingTask.basePriority
-                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
-                    {
-                        ArrayList<com.example.serveside.response.EventInformation> taskInformations = TaskEventInformationRecords.get(_waitingTask.dynamicTaskId);
-                        if (!taskInformations.isEmpty() && taskInformations.get(taskInformations.size() - 1).getState().equals("indirect-spinning"))
-                        {
-                            ChangeTaskState(_waitingTask, "blocked");
-                        }
-                    }
-                }
-
                 // 如果 runningTask 是迁移到 immigrate running cpu core 上运行的话，需要修改 helpTask（提供帮助机制）的 isHelp 为 false
-                // 除此之外，helpTask 的状态也需要发生变化: direct-spinning --> blocked.
-                // 除此之外，在 waitingTasks 中的任务状态也需要发生变化 : indirect spinning -- > blocked /  arrival blocking -- > blocked.
                 if (runningTask.immigrateRunningCpuCore != -1)
                 {
-                    com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = null;
-                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
-                    {
-                        if (_waitingTask.isHelp)
-                        {
-                            _waitingTask.isHelp = false;
-                            break;
-                        }
-                    }
-                    runningTask.immigrateRunningCpuCore = -1;
-
-                    // waitingTasks 中的任务都需要变成 blocked
-                    for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
-                        ChangeTaskState(_waitingTask, "blocked");
-
-
+                    com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = getHelpTask(waitingTasks, runningTask.accessResourceIndex.get(runningTask.requestResourceTh));
+                    helpTask.isHelp = false;
                 }
             }
         }
@@ -939,43 +909,6 @@ public class MixedCriticalSystem {
         {
             ProcedureControlBlock preemptedTask = iterator.next();
             Resource accessResource = totalResources.get(preemptedTask.accessResourceIndex.get(preemptedTask.requestResourceTh));
-
-            // 当 access-resource-task 在 help-cpu-core 上再次被抢占，可能有机会迁移回去
-            if (runningTaskPerCore.get(preemptedTask.baseRunningCpuCore) == null || accessResource.ceiling.get(preemptedTask.baseRunningCpuCore) > runningTaskPerCore.get(preemptedTask.baseRunningCpuCore).priorities.peek())
-            {
-                // access-resource-task 可以迁移回原来的 cpu core
-                // 1. 弹出其在 immigrate cpu core 上的优先级
-                // 2. 现在的优先级就应该是：resource.get(preemptedTask.baseRunningCpuCore.priorities.peek())
-                // 弹出的条件是 access-resource-task 已经发生过迁移，现在要回来
-                if (preemptedTask.immigrateRunningCpuCore != -1)
-                {
-                    preemptedTask.priorities.pop();
-                }
-
-                // 2. access-resource-task 抢占 base-cpu-core 上的任务
-                ProcedureControlBlock baseCpuCoreTask = runningTaskPerCore.get(preemptedTask.baseRunningCpuCore);
-                if (baseCpuCoreTask != null)
-                {
-                    // baseCpuCoreTask 新增状态：blocked, baseCpuCoreTask 被放入 waitingTasks 当中
-                    ChangeTaskState(baseCpuCoreTask, "blocked");
-                    waitingTasksPerCore.get(preemptedTask.baseRunningCpuCore).add(baseCpuCoreTask);
-                }
-
-                // access-resource-task 占据 base-running-cpu-core
-                ChangeTaskState(preemptedTask, "");
-                runningTaskPerCore.set(preemptedTask.baseRunningCpuCore, preemptedTask);
-                preemptedTask.immigrateRunningCpuCore = -1;
-
-                // base cpu core 上运行的任务发生变化: access-resource-task
-                // base cpu core 甘特图上显示 switch-task
-                ChangeCpuTaskState(preemptedTask.baseRunningCpuCore, preemptedTask, "");
-                cpuEventTimePointRecords.get(preemptedTask.baseRunningCpuCore).add(new EventTimePoint(preemptedTask.staticTaskId, preemptedTask.dynamicTaskId, "switch-task", systemClock, accessResource.id));
-                // 将 preemptedATask 从队列(preemptedTask 以及 waitingTasksPerCore 队列)当中删除
-                iterator.remove();
-                waitingTasksPerCore.get(preemptedTask.baseRunningCpuCore).remove(preemptedTask);
-
-                continue;
-            }
 
             // 不可以迁移回去
             // 访问 waitingQueue 里面的 task 看看他们是否可以提供支持
@@ -1019,24 +952,36 @@ public class MixedCriticalSystem {
             }
         }
 
-        // 处理开启 indirect-spinning 的情况（任务又重新获得 cpu 的执行权）
+        // 给 waitingTasksPerCore 上的任务更新当前的状态(blocked、indirect-spinning、help-access-resource)(根据当前 runningTask 的运行状态来决定)
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
         {
+            ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(i);
             com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
+
             if (runningTask == null)
                 continue;
 
-            // 1. 普通的任务自旋
-            // 2. help-mechanism: 启动帮助机制
+            // 根据 runningTask 的运行状态来给给出 waitingTasksPerCore 上的任务的状态
+            // 任务正在 direct-spinning(该任务并没有发生任何迁移) || 任务迁移到该 cpu 上执行 ，对 waitingTasks 所带来的结果都是一样的
             if (runningTask.spin || runningTask.immigrateRunningCpuCore != -1)
             {
-                // 开启 indirect-spinning 状态
-                for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasksPerCore.get(i))
+                // runningTask 能够执行，已经说明了它的优先级是最高的
+                for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
                 {
-                    // 1. 如果是提供帮助机制的 task，则不需要由 help-access-resource 状态变成 indirect-spinning
-                    if (!waitingTask.isHelp && waitingTask.priorities.peek() < runningTask.priorities.peek())
+                    if (!waitingTask.isHelp)
                     {
                         ChangeTaskState(waitingTask, "indirect-spinning");
+                    }
+                }
+            }
+            // 剩下的情况就是 runningTask 正在 访问资源/正常执行, 该 waitingTasks 上的任务状态统一为 blocked
+            else
+            {
+                for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
+                {
+                    if (!waitingTask.isHelp)
+                    {
+                        ChangeTaskState(waitingTask, "blocked");
                     }
                 }
             }
@@ -1045,10 +990,9 @@ public class MixedCriticalSystem {
         // 处理 Arrival Blocking 的情况
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
         {
+            com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
             if (waitingTasksPerCore.get(i).isEmpty())
                 continue;
-
-            com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
 
             // Arrival Blocking 发生的条件
             // 1. waitingTask 刚刚到达，即还没有开始执行
@@ -1061,7 +1005,7 @@ public class MixedCriticalSystem {
                 if (waitingTask.executedTime == 0)
                 {
                     // 1. runningTask 本身就是在该 cpu core 上进行运行的
-                    if (runningTask.immigrateRunningCpuCore == -1 && waitingTask.basePriority > runningTask.basePriority && waitingTask.priorities.peek() < runningTask.priorities.peek())
+                    if (runningTask.immigrateRunningCpuCore == -1 && waitingTask.basePriority > runningTask.basePriority)
                     {
                         ChangeTaskState(waitingTask, "arrival-blocking");
                     }
@@ -1070,15 +1014,7 @@ public class MixedCriticalSystem {
                     if (runningTask.immigrateRunningCpuCore != -1)
                     {
                         // 先找出提供帮助的 task
-                        com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = null;
-                        for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock _waitingTask : waitingTasks)
-                        {
-                            if (_waitingTask.isHelp)
-                            {
-                                helpTask = _waitingTask;
-                                break;
-                            }
-                        }
+                        com.example.serveside.service.mrsp.entity.ProcedureControlBlock helpTask = getHelpTask(waitingTasks, runningTask.accessResourceIndex.get(runningTask.requestResourceTh));
 
                         // helpTask 的 优先级小于 waitingTask（因此helpTask本质上阻碍了waitingTask的执行）
                         if (helpTask.basePriority < waitingTask.basePriority)
@@ -1089,28 +1025,6 @@ public class MixedCriticalSystem {
                 }
             }
         }
-
-        // 撤销 Arrival Blocking 的状态
-        for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
-        {
-            if (waitingTasksPerCore.get(i).isEmpty())
-                continue;
-
-            com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
-            ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(i);
-
-            // 撤销 Arrival Blocking 的时机 : 更高优先级的任务在执行
-            for (com.example.serveside.service.mrsp.entity.ProcedureControlBlock waitingTask : waitingTasks)
-            {
-                ArrayList<com.example.serveside.response.EventInformation> taskInformations = TaskEventInformationRecords.get(waitingTask.dynamicTaskId);
-
-                if (!taskInformations.isEmpty() && taskInformations.get(taskInformations.size() - 1).getState().equals("arrival-blocking") && waitingTask.basePriority < runningTask.basePriority)
-                {
-                    ChangeTaskState(waitingTask, "blocked");
-                }
-            }
-        }
-
     }
 
     /*
