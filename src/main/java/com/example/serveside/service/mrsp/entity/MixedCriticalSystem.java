@@ -111,16 +111,16 @@ public class MixedCriticalSystem {
                 RESOURCE_SHARING_FACTOR, NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE);
 
         // Generate the tasks that the system need to execute.
-//        totalTasks = systemGenerator.generateTasks();
-        totalTasks = systemGenerator.testGenerateTask();
+        totalTasks = systemGenerator.generateTasks();
+//        totalTasks = systemGenerator.testGenerateTask();
 
         // Generate the resources that the system has.
-//        totalResources = systemGenerator.generateResources();
-        totalResources = systemGenerator.testGenerateResources();
+        totalResources = systemGenerator.generateResources();
+//        totalResources = systemGenerator.testGenerateResources();
 
         // Generate the resource usage, i.e. task access the resource(time, times)
-//        allocatedTasks = systemGenerator.generateResourceUsage(totalTasks, totalResources);
-        allocatedTasks = systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
+        allocatedTasks = systemGenerator.generateResourceUsage(totalTasks, totalResources);
+//        allocatedTasks = systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
 
         // Print the information about the task.
         for (int i = 0; i < allocatedTasks.size(); ++i) {
@@ -368,115 +368,6 @@ public class MixedCriticalSystem {
         Random random = new Random();
 
         int releaseTaskStaticId;
-
-        if (systemClock == 1)
-        {
-            releaseTaskStaticId = 0;
-            // reset
-            timeSinceLastRelease[releaseTaskStaticId] = 0;
-            // initialize the release task and set its pid.
-            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
-            releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
-
-            // 记录一下发布的任务的基本信息
-            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
-
-            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
-
-            // 记录一下任务发布的时间点
-            TaskEventTimePointsRecords.add(new ArrayList<>());
-            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
-
-            // 创建一个新的 taskEventInformation 来保存任务的运行过程
-            TaskEventInformationRecords.add(new ArrayList<>());
-
-            releaseTaskStaticId = 1;
-            // reset
-            timeSinceLastRelease[releaseTaskStaticId] = 0;
-            // initialize the release task and set its pid.
-            releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
-            releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
-
-            // 记录一下发布的任务的基本信息
-            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
-
-            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
-
-            // 记录一下任务发布的时间点
-            TaskEventTimePointsRecords.add(new ArrayList<>());
-            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
-
-            // 创建一个新的 taskEventInformation 来保存任务的运行过程
-            TaskEventInformationRecords.add(new ArrayList<>());
-
-            ++timeSinceLastRelease[2];
-            ++timeSinceLastRelease[3];
-
-            return ;
-        }
-
-        if (systemClock == 3)
-        {
-            releaseTaskStaticId = 2;
-            // reset
-            timeSinceLastRelease[releaseTaskStaticId] = 0;
-            // initialize the release task and set its pid.
-            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
-            releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
-
-            // 记录一下发布的任务的基本信息
-            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
-
-            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
-
-            // 记录一下任务发布的时间点
-            TaskEventTimePointsRecords.add(new ArrayList<>());
-            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
-
-            // 创建一个新的 taskEventInformation 来保存任务的运行过程
-            TaskEventInformationRecords.add(new ArrayList<>());
-
-            ++timeSinceLastRelease[0];
-            ++timeSinceLastRelease[1];
-            ++timeSinceLastRelease[3];
-
-            return ;
-        }
-
-        if (systemClock == 4)
-        {
-            releaseTaskStaticId = 3;
-            // reset
-            timeSinceLastRelease[releaseTaskStaticId] = 0;
-            // initialize the release task and set its pid.
-            ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(releaseTaskStaticId));
-            releaseTask.dynamicTaskId = releaseTaskNum++;
-            waitingTasksPerCore.get(totalTasks.get(releaseTaskStaticId).baseRunningCpuCore).add(releaseTask);
-
-            // 记录一下发布的任务的基本信息
-            releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
-
-            System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
-
-            // 记录一下任务发布的时间点
-            TaskEventTimePointsRecords.add(new ArrayList<>());
-            TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
-
-            // 创建一个新的 taskEventInformation 来保存任务的运行过程
-            TaskEventInformationRecords.add(new ArrayList<>());
-
-            ++timeSinceLastRelease[0];
-            ++timeSinceLastRelease[1];
-            ++timeSinceLastRelease[2    ];
-
-            return ;
-        }
-
-        if (systemClock < 14)
-            return ;
 
         for (int i = 0; i < totalTasks.size(); ++i)
         {
@@ -830,7 +721,7 @@ public class MixedCriticalSystem {
     public static void ChooseTaskToRun()
     {
 
-        // 1. 高优先级的任务抢占低优先级的任务
+        // 2. 高优先级的任务抢占低优先级的任务
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
         {
             ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
@@ -904,7 +795,7 @@ public class MixedCriticalSystem {
             }
         }
 
-        // 2. 访问全局资源的任务（被抢占）进行迁移
+        // 3. 访问全局资源的任务（被抢占）进行迁移
         for (Iterator<ProcedureControlBlock> iterator = preemptedAccessResourceTasks.iterator(); iterator.hasNext();)
         {
             ProcedureControlBlock preemptedTask = iterator.next();
@@ -952,7 +843,7 @@ public class MixedCriticalSystem {
             }
         }
 
-        // 给 waitingTasksPerCore 上的任务更新当前的状态(blocked、indirect-spinning、help-access-resource)(根据当前 runningTask 的运行状态来决定)
+        // 4. 给 waitingTasksPerCore 上的任务更新当前的状态(blocked、indirect-spinning、help-access-resource)(根据当前 runningTask 的运行状态来决定)
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
         {
             ArrayList<com.example.serveside.service.mrsp.entity.ProcedureControlBlock> waitingTasks = waitingTasksPerCore.get(i);
@@ -987,7 +878,7 @@ public class MixedCriticalSystem {
             }
         }
 
-        // 处理 Arrival Blocking 的情况
+        //5.  处理 Arrival Blocking 的情况
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
         {
             com.example.serveside.service.mrsp.entity.ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
