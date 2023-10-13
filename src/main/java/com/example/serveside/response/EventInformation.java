@@ -30,17 +30,17 @@ public class EventInformation {
             return ;
         }
 
-        staticPid = task.staticTaskId;
-        dynamicPid = task.dynamicTaskId;
+        staticPid = task.basicPCB.staticTaskId;;
+        dynamicPid = task.basicPCB.dynamicTaskId;
         startTime = _startTime;
         endTime = -1;
 
         if (_state.isEmpty())
         {
             // 设置状态
-            if (task.spin)
+            if (task.basicPCB.spin)
                 state = "direct-spinning";
-            else if (task.isAccessGlobalResource || task.isAccessLocalResource)
+            else if (task.basicPCB.isAccessGlobalResource || task.basicPCB.isAccessLocalResource)
                 state = "access-resource";
             else
                 state = "normal-execution";

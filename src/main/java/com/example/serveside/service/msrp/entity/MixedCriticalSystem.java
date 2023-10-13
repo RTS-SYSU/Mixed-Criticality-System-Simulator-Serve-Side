@@ -4,14 +4,13 @@ import com.example.serveside.response.EventInformation;
 import com.example.serveside.response.EventTimePoint;
 import com.example.serveside.response.GanttInformation;
 import com.example.serveside.response.TaskInformation;
-import com.example.serveside.service.msrp.generatorTools.SimpleSystemGenerator;
 import com.example.serveside.service.msrp.utils.ShowEventInformation;
 import com.example.serveside.service.msrp.utils.ShowTaskStates;
 import com.example.serveside.service.msrp.entity.SingleTaskState.TASK_STATE;
+import com.example.serveside.service.CommonUse.BasicPCB;
+import com.example.serveside.service.CommonUse.BasicResource;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class MixedCriticalSystem {
     /* System Setup */
@@ -20,41 +19,6 @@ public class MixedCriticalSystem {
     public static int criticality_indicator = 0;
     /* The cpu core num. */
     public static int TOTAL_CPU_CORE_NUM = 2;
-
-    /* The minimum period for every task. */
-    public static int MIN_PERIOD = 50;
-
-    /* The maximum period for every task. */
-    public static int MAX_PERIOD = 1000;
-
-    /* The max number of the access resource time. */
-    public static int NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE = 2;
-
-    /* A ratio of task to access resource. */
-    public static double RESOURCE_SHARING_FACTOR = 1;
-
-    /* The max priority in the system. */
-    public static final int MAX_PRIORITY = 1000;
-
-    /* define how long the critical section can be */
-    public enum CS_LENGTH_RANGE {
-        VERY_LONG_CSLEN, LONG_CSLEN, MEDIUM_CS_LEN, SHORT_CS_LEN, VERY_SHORT_CS_LEN, Random
-    }
-
-    /* Allocate a number of task to a partition. */
-    public static int NUMBER_OF_TASK_IN_A_PARTITION = 2;
-
-    /* define how many resources in the system */
-    public enum RESOURCES_RANGE {
-        /* partitions / 2 us */
-        HALF_PARITIONS,
-
-        /* partitions us */
-        PARTITIONS,
-
-        /* partitions * 2 us */
-        DOUBLE_PARTITIONS,
-    }
 
     /* System Execute */
     /* system clock, to record the time. */
@@ -68,9 +32,6 @@ public class MixedCriticalSystem {
 
     /* generate total tasks that the system has. */
     public static ArrayList<Resource> totalResources;
-
-    /*  allocate task to the cpu core. */
-    public static ArrayList<ArrayList<ProcedureControlBlock>> allocatedTasks;
 
     /* record the times of the task that has been finished. */
     public static int[] taskFinishTimes;
@@ -109,62 +70,45 @@ public class MixedCriticalSystem {
     public static Integer timeAxisLength;
 
     /* Record the release task's information and send it to client-side. */
-    public static List<TaskInformation> releaseTaskInformationRecords;
+    public static List<TaskInformation> releaseTaskInformations;
 
     /* 发生关键级切换的时间点 */
     public static Integer criticalitySwitchTime;
 
-    public static void main(String[] args)
+    /* 用以判断当前协议下的进程是否可以完成 */
+    public static Boolean isSchedulable;
+
+    /* 任务释放的时间 */
+    public static LinkedHashMap<Integer, ArrayList<Integer>> taskReleaseTimes;
+
+    /*
+     * 遍历哈希表 taskReleaseTimes 的迭代器
+     * */
+    public static Iterator<Map.Entry<Integer, ArrayList<Integer>>> iteratorTaskReleaseTimes;
+
+    /* 下一个任务释放的时间点 */
+    public static Map.Entry<Integer, ArrayList<Integer>> itemTaskReleaseTimes = null;
+
+    /* 构造函数：初始化系统中任务以及资源的基本信息 */
+    public static void MSRPInitialize(ArrayList<BasicPCB> _totalTasks, ArrayList<BasicResource> _totalResources, int _totalCpuCoreNum, LinkedHashMap<Integer, ArrayList<Integer>> _taskReleaseTimes)
     {
-        SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(MIN_PERIOD, MAX_PERIOD, TOTAL_CPU_CORE_NUM,
-                TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION, CS_LENGTH_RANGE.SHORT_CS_LEN, RESOURCES_RANGE.PARTITIONS,
-                RESOURCE_SHARING_FACTOR, NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE);
+        totalTasks = new ArrayList<>(_totalTasks.size());
+        for (BasicPCB task : _totalTasks)
+            totalTasks.add(new ProcedureControlBlock(task));
 
-        // Generate the tasks that the system need to execute.
-        totalTasks = systemGenerator.generateTasks();
-//        totalTasks = systemGenerator.testGenerateTask();
+        totalResources = new ArrayList<>(_totalResources.size());
+        for (BasicResource resource : _totalResources)
+            totalResources.add(new Resource(resource));
 
-        // Generate the resources that the system has.
-        totalResources = systemGenerator.generateResources();
-//        totalResources = systemGenerator.testGenerateResources();
+        TOTAL_CPU_CORE_NUM = _totalCpuCoreNum;
 
-        // Generate the resource usage, i.e. task access the resource(time, times)
-        allocatedTasks = systemGenerator.generateResourceUsage(totalTasks, totalResources);
-//        allocatedTasks = systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
+        taskReleaseTimes = _taskReleaseTimes;
 
-        // Print the information about the task.
-        for (int i = 0; i < allocatedTasks.size(); ++i)
-        {
-            System.out.printf("CPU %d:\n", i);
-            System.out.print("\tTask Information:\n");
-
-            for (ProcedureControlBlock task : allocatedTasks.get(i))
-            {
-                System.out.printf("\t\t\tTask %d\n", task.staticTaskId);
-                System.out.printf("\t\t\t\tPriority: %d, Criticality: %d\n", task.priorities.peek(), task.criticality);
-                System.out.printf("\t\t\t\tWCCT_low: %d, WCCT_high: %d\n", task.WCCT_low, task.WCCT_high);
-                System.out.printf("\t\t\t\tUtilization: %.2f, Period: %d, CPU time: %d\n", task.utilization, task.period, task.totalNeededTime);
-                for (int j = 0; j < task.accessResourceIndex.size(); ++j)
-                {
-                    System.out.printf("\t\t\t\tAccess Resource Id: %d, Access Time: %d\n", task.accessResourceIndex.get(j), task.resourceAccessTime.get(j));
-                }
-            }
-        }
-
-        // Print the information about the resource.
-        for (Resource resource : totalResources) {
-            System.out.printf("Resource Id:%d\n", resource.id);
-            System.out.printf("\t\t\tc_low: %d, c_high: %d\n", resource.c_low, resource.c_high);
-            System.out.print("\t\t\tResource Ceiling\n");
-            for (int j = 0; j < resource.ceiling.size(); ++j) {
-                System.out.printf("\t\t\t\tCPU %d: %d\n", j, resource.ceiling.get(j));
-            }
-        }
-
-        /* Start running. */
-        SystemExecute();
-
+        iteratorTaskReleaseTimes = _taskReleaseTimes.entrySet().iterator();
+        if (iteratorTaskReleaseTimes.hasNext())
+            itemTaskReleaseTimes = iteratorTaskReleaseTimes.next();
     }
+
 
     /* Calculate the time axis length */
     public static void CalculateTimeAxisLength()
@@ -212,18 +156,21 @@ public class MixedCriticalSystem {
 
             // 从 TaskEventTimePointRecords 中通过 dynamicPid 获取 eventTimePoint : TaskEventTimePointsRecords.get(taskState.dynamicTaskId - 1)
 
-            com.example.serveside.response.GanttInformation taskGanttInformation = new GanttInformation(eventInformations, TaskEventTimePointsRecords.get(taskState.dynamicTaskId - 1), timeAxisLength);
+            com.example.serveside.response.GanttInformation taskGanttInformation = new GanttInformation(eventInformations, TaskEventTimePointsRecords.get(taskState.dynamicTaskId), timeAxisLength);
 
             taskGanttInformations.add(new com.example.serveside.response.TaskGanttInformation(
                     taskState.staticTaskId, taskState.dynamicTaskId, taskState.runningCpuCore, taskGanttInformation));
         }
 
-        return new com.example.serveside.response.ToTalInformation(ganttInformations, releaseTaskInformationRecords, taskGanttInformations, criticalitySwitchTime);
+        return new com.example.serveside.response.ToTalInformation(ganttInformations, releaseTaskInformations, taskGanttInformations, criticalitySwitchTime);
     }
 
     public static void SystemExecute()
     {
         /* start to execute */
+
+        isSchedulable = true;
+
         // initialize the clock
         systemClock = 0;
 
@@ -250,7 +197,7 @@ public class MixedCriticalSystem {
         // create an int array list to show that the task can be release or not.
         timeSinceLastRelease = new int[totalTasks.size()];
         for (int i = 0; i < totalTasks.size(); ++i)
-            timeSinceLastRelease[i] = totalTasks.get(i).period;
+            timeSinceLastRelease[i] = totalTasks.get(i).basicPCB.period;
 
         // create a ArrayList to save the task that is can release resource.
         ReleaseResourceTask = new ArrayList<>(TOTAL_CPU_CORE_NUM);
@@ -283,7 +230,7 @@ public class MixedCriticalSystem {
         TaskEventTimePointsRecords = new ArrayList<>();
 
         /* Initialize the releaseInformationRecords */
-        releaseTaskInformationRecords = new ArrayList<>();
+        releaseTaskInformations = new ArrayList<>();
 
         /* Initialize the indicator records array. */
         indicatorRecords = new ArrayList<>();
@@ -304,12 +251,14 @@ public class MixedCriticalSystem {
         ShowEventInformation.showIndicatorInShell(indicatorRecords);
 
         // Print task states
-        ShowTaskStates.printTaskStates(taskStates);
+//        ShowTaskStates.printTaskStates(taskStates);
     }
 
     /* When all tasks are finished, we want to jump from the loop and show the program scheduler. */
     public static boolean systemSuspend(int[] taskFinishTimes)
     {
+        if (!isSchedulable)
+            return true;
         // check all the task has been finished.
         for (int taskFinishTime : taskFinishTimes)
             if (taskFinishTime == 0)
@@ -332,6 +281,7 @@ public class MixedCriticalSystem {
     {
         /* Execute the task that is in runningTaskPerCore. */
         /* Action: Request for resource. */
+
         ExecuteTasks();
 
         /* After execute one clock, we firstly Increase the elapsed time of the task in runningTaskPerCore and waitingTasks. */
@@ -364,103 +314,103 @@ public class MixedCriticalSystem {
                 continue;
 
             ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
-            if(runningTask.accessResourceIndex.isEmpty())
+            if(runningTask.basicPCB.accessResourceIndex.isEmpty())
                 continue;
 
             // test: System.out.printf("I'm task %d，I want resource %d，remainTime is %d\n",
             //      runningTask.staticTaskId, runningTask.accessResourceIndex.get(0), runningTask.remainResourceComputationTime);
-            if(runningTask.isAccessGlobalResource || runningTask.isAccessLocalResource)
+            if(runningTask.basicPCB.isAccessGlobalResource || runningTask.basicPCB.isAccessLocalResource)
                 continue;
 
             // determine that whether we need to request a resource or not.
-            if (runningTask.requestResourceTh >= runningTask.accessResourceIndex.size() ||
-                    runningTask.resourceAccessTime.get(runningTask.requestResourceTh) > runningTask.executedTime ||
-                    runningTask.spin)
+            if (runningTask.basicPCB.requestResourceTh >= runningTask.basicPCB.accessResourceIndex.size() ||
+                    runningTask.basicPCB.resourceAccessTime.get(runningTask.basicPCB.requestResourceTh) > runningTask.basicPCB.executedTime ||
+                    runningTask.basicPCB.spin)
                 continue;
 
             // set and get requestResource
-            int requestResourceIndex = runningTask.accessResourceIndex.get(runningTask.requestResourceTh);
+            int requestResourceIndex = runningTask.basicPCB.accessResourceIndex.get(runningTask.basicPCB.requestResourceTh);
             Resource requestResource = totalResources.get(requestResourceIndex);
 
             // task state information
-            TaskStateInformation runningTaskState = taskStates.get(runningTask.dynamicTaskId - 1);
+            TaskStateInformation runningTaskState = taskStates.get(runningTask.basicPCB.dynamicTaskId);
 
             // global resource
-            if(requestResource.isGlobal) {
+            if(requestResource.basicResource.isGlobal) {
                 // global resource is occupied, spin and wait
-                if(requestResource.isOccupied) {
-                    runningTask.spin = true;
+                if(requestResource.basicResource.isOccupied) {
+                    runningTask.basicPCB.spin = true;
                     requestResource.waitingQueue.add(runningTask);
                     // record task state and begin direct spin
                     runningTaskState.priority = Integer.MAX_VALUE;
                     runningTaskState.endState(systemClock);
-                    runningTaskState.addState(TASK_STATE.DIRECT_SPIN, systemClock, requestResource.id);
+                    runningTaskState.addState(TASK_STATE.DIRECT_SPIN, systemClock, requestResource.basicResource.id);
 
                     // 处理 indirect-spinning delay
-                    for (ProcedureControlBlock waitingTask : waitingTasksPerCore.get(runningTask.runningCpuCore))
+                    for (ProcedureControlBlock waitingTask : waitingTasksPerCore.get(runningTask.basicPCB.baseRunningCpuCore))
                     {
-                        if (waitingTask.basePriority < runningTask.basePriority)
+                        if (waitingTask.basicPCB.basePriority < runningTask.basicPCB.basePriority)
                         {
-                            taskStates.get(waitingTask.dynamicTaskId - 1).endState(systemClock);
-                            taskStates.get(waitingTask.dynamicTaskId - 1).addState(TASK_STATE.INDIRECT_SPIN, systemClock);
+                            taskStates.get(waitingTask.basicPCB.dynamicTaskId).endState(systemClock);
+                            taskStates.get(waitingTask.basicPCB.dynamicTaskId).addState(TASK_STATE.INDIRECT_SPIN, systemClock);
                         }
                     }
 
                     // Event: Wait for a resource, record the event time point.
-                    CPUEventTimePointsRecords.get(i).add(new EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "lock-attempt", systemClock, requestResourceIndex));
+                    CPUEventTimePointsRecords.get(i).add(new EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "lock-attempt", systemClock, requestResourceIndex));
                     // Task Event: Wait for a resource, record the event time point.
-                    TaskEventTimePointsRecords.get(runningTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "lock-attempt", systemClock, requestResourceIndex));
+                    TaskEventTimePointsRecords.get(runningTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "lock-attempt", systemClock, requestResourceIndex));
 
                 }
                 // unoccupied, get it
                 else {
-                    requestResource.isOccupied = true;
-                    runningTask.isAccessGlobalResource = true;
+                    requestResource.basicResource.isOccupied = true;
+                    runningTask.basicPCB.isAccessGlobalResource = true;
                     if(criticality_indicator == 0)
-                        runningTask.remainResourceComputationTime = requestResource.c_low;
+                        runningTask.basicPCB.remainResourceComputationTime = requestResource.basicResource.c_low;
                     else
-                        runningTask.remainResourceComputationTime = requestResource.c_high;
+                        runningTask.basicPCB.remainResourceComputationTime = requestResource.basicResource.c_high;
 
-                    runningTask.systemCriticalityWhenAccessResource = criticality_indicator;
+                    runningTask.basicPCB.systemCriticalityWhenAccessResource = criticality_indicator;
 
                     // record task state
                     runningTaskState.priority = Integer.MAX_VALUE;
                     runningTaskState.endState(systemClock);
-                    runningTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, requestResource.id);
-                    runningTaskState.resourceId = requestResource.id;
-                    runningTaskState.remainResourceComputationTime = runningTask.remainResourceComputationTime;
+                    runningTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, requestResource.basicResource.id);
+                    runningTaskState.resourceId = requestResource.basicResource.id;
+                    runningTaskState.remainResourceComputationTime = runningTask.basicPCB.remainResourceComputationTime;
 
                     // Event: Get a resource, record the event time point.
-                    CPUEventTimePointsRecords.get(i).add(new EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", systemClock, requestResourceIndex));
+                    CPUEventTimePointsRecords.get(i).add(new EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "locked", systemClock, requestResourceIndex));
                     // Task Event: Get a global resource, record the event time point.
-                    TaskEventTimePointsRecords.get(runningTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", systemClock, requestResourceIndex));
+                    TaskEventTimePointsRecords.get(runningTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "locked", systemClock, requestResourceIndex));
                 }
             }
 
             // local resource
             else {
                 // task gets recourse and boost its priority
-                requestResource.isOccupied = true;
-                runningTask.isAccessLocalResource = true;
+                requestResource.basicResource.isOccupied = true;
+                runningTask.basicPCB.isAccessLocalResource = true;
                 if(criticality_indicator == 0)
-                    runningTask.remainResourceComputationTime = requestResource.c_low;
+                    runningTask.basicPCB.remainResourceComputationTime = requestResource.basicResource.c_low;
                 else
-                    runningTask.remainResourceComputationTime = requestResource.c_high;
-                int currentCeiling = requestResource.ceiling.get(i);
-                runningTask.priorities.push(currentCeiling);
+                    runningTask.basicPCB.remainResourceComputationTime = requestResource.basicResource.c_high;
+                int currentCeiling = requestResource.basicResource.ceiling.get(i);
+                runningTask.basicPCB.priorities.push(currentCeiling);
                 // record task state
                 runningTaskState.priority = currentCeiling;
                 runningTaskState.endState(systemClock);
-                runningTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, requestResource.id);
-                runningTaskState.resourceId = requestResource.id;
-                runningTaskState.remainResourceComputationTime = runningTask.remainResourceComputationTime;
+                runningTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, requestResource.basicResource.id);
+                runningTaskState.resourceId = requestResource.basicResource.id;
+                runningTaskState.remainResourceComputationTime = runningTask.basicPCB.remainResourceComputationTime;
 
-                runningTask.systemCriticalityWhenAccessResource = criticality_indicator;
+                runningTask.basicPCB.systemCriticalityWhenAccessResource = criticality_indicator;
 
                 // Event: Get a resource, record the event time point.
-                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", systemClock, requestResourceIndex));
+                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "locked", systemClock, requestResourceIndex));
                 // Task Event: Get a local resource, record the event time point.
-                TaskEventTimePointsRecords.get(runningTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "locked", systemClock, requestResourceIndex));
+                TaskEventTimePointsRecords.get(runningTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "locked", systemClock, requestResourceIndex));
             }
             // record old event and create a new one
             ModifyRunningEvent(i, runningTask);
@@ -482,21 +432,21 @@ public class MixedCriticalSystem {
             ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
 
             // task state information
-            TaskStateInformation runningTaskState = taskStates.get(runningTask.dynamicTaskId - 1);
+            TaskStateInformation runningTaskState = taskStates.get(runningTask.basicPCB.dynamicTaskId);
 
-            ++runningTask.elapsedTime;
+            ++runningTask.basicPCB.elapsedTime;
 
             // when task is not spin（computed and access resource）, executedTime++
-            if (!runningTask.spin)
-                ++runningTask.executedTime;
+            if (!runningTask.basicPCB.spin)
+                ++runningTask.basicPCB.executedTime;
 
             // when task is not access, computeAndSpinTime++;
             // include compute and spin time, not include access resource time.
-            if (!runningTask.isAccessLocalResource && !runningTask.isAccessGlobalResource) {
-                ++runningTask.computeAndSpinTime;
+            if (!runningTask.basicPCB.isAccessLocalResource && !runningTask.basicPCB.isAccessGlobalResource) {
+                ++runningTask.basicPCB.computeAndSpinTime;
 
                 // if computeAndSpinTime > WCCT_low, upgrade criticality to high
-                if (runningTask.computeAndSpinTime > runningTask.WCCT_low && criticality_indicator == 0) {
+                if (runningTask.basicPCB.computeAndSpinTime > runningTask.basicPCB.WCCT_low && criticality_indicator == 0) {
                     criticalitySwitchTime = systemClock;
                     criticality_indicator = 1;
                     ModifyIndicatorEvent(runningTask, false);
@@ -504,14 +454,14 @@ public class MixedCriticalSystem {
             }
 
             // if the task is accessing a resource, reduce its needed resource computation time.
-            if (runningTask.isAccessLocalResource || runningTask.isAccessGlobalResource) {
+            if (runningTask.basicPCB.isAccessLocalResource || runningTask.basicPCB.isAccessGlobalResource) {
 
-                --runningTask.remainResourceComputationTime;
+                --runningTask.basicPCB.remainResourceComputationTime;
 
                 // Finish the use of the resource, set the resource free.
-                if (runningTask.remainResourceComputationTime == 0) // the running task releases the access to the resource that occupied.
+                if (runningTask.basicPCB.remainResourceComputationTime == 0) // the running task releases the access to the resource that occupied.
                 {
-                    runningTaskState.priority = runningTask.priorities.peek();
+                    runningTaskState.priority = runningTask.basicPCB.priorities.peek();
                     runningTaskState.endState(systemClock);
                     runningTaskState.addState(TASK_STATE.RUNNING, systemClock);
 
@@ -519,6 +469,10 @@ public class MixedCriticalSystem {
                     ReleaseResourceTask.set(i, runningTask);
                 }
             }
+
+            // 任务的 elapsedTime 超过 DeadLine 的, 这样子的话就没有必要进行调度了
+            if (runningTask.basicPCB.elapsedTime > runningTask.basicPCB.deadline)
+                isSchedulable = false;
         }
 
         // ReleaseResource after loop to avoid bug
@@ -539,16 +493,16 @@ public class MixedCriticalSystem {
             // The CPU is spare, skip off it.
             if (runningTask == null)
                 continue;
-            TaskStateInformation runningTaskState = taskStates.get(runningTask.dynamicTaskId - 1);
+            TaskStateInformation runningTaskState = taskStates.get(runningTask.basicPCB.dynamicTaskId);
 
             // If the task is finished, then we can remove it from the cpu core and choose other tasks to run.
-            if (runningTask.executedTime >= runningTask.totalNeededTime)
+            if (runningTask.basicPCB.executedTime >= runningTask.basicPCB.totalNeededTime)
             {
                 // if task is accessing resource, wait until the resource accessing complete
-                if (runningTask.isAccessGlobalResource || runningTask.isAccessLocalResource)
+                if (runningTask.basicPCB.isAccessGlobalResource || runningTask.basicPCB.isAccessLocalResource)
                     continue;
                 // The task has been finished again.
-                ++taskFinishTimes[runningTask.staticTaskId];
+                ++taskFinishTimes[runningTask.basicPCB.staticTaskId];
                 // set the cpu core is spare.
                 runningTaskPerCore.set(i, null);
 
@@ -560,21 +514,21 @@ public class MixedCriticalSystem {
                 runningTaskState.live = false;
 
                 // Complete the execution of a task.
-                CPUEventTimePointsRecords.get(i).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "completion", systemClock, -1));
-                TaskEventTimePointsRecords.get(runningTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "completion", systemClock, -1));
+                CPUEventTimePointsRecords.get(i).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "completion", systemClock, -1));
+                TaskEventTimePointsRecords.get(runningTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "completion", systemClock, -1));
                 continue;
             }
 
             // if low task without resource at high system, end it directly
-            if (runningTask.criticality < criticality_indicator && !runningTask.isAccessGlobalResource && !runningTask.isAccessLocalResource) {
-                ++taskFinishTimes[runningTask.staticTaskId];
+            if (runningTask.basicPCB.criticality < criticality_indicator && !runningTask.basicPCB.isAccessGlobalResource && !runningTask.basicPCB.isAccessLocalResource) {
+                ++taskFinishTimes[runningTask.basicPCB.staticTaskId];
                 runningTaskPerCore.set(i, null);
                 ModifyRunningEvent(i, null);
                 runningTaskState.killTask(systemClock);
 
                 // Killed a low critical task(Show in cpu gantt chart).
-                CPUEventTimePointsRecords.get(i).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "killed", systemClock, -1));
-                TaskEventTimePointsRecords.get(runningTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "killed", systemClock, -1));
+                CPUEventTimePointsRecords.get(i).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "killed", systemClock, -1));
+                TaskEventTimePointsRecords.get(runningTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "killed", systemClock, -1));
 
             }
         }
@@ -582,7 +536,11 @@ public class MixedCriticalSystem {
         // Increase the waiting time that the blocking task.
         for (ArrayList<ProcedureControlBlock> procedureControlBlocks : waitingTasksPerCore) {
             for (ProcedureControlBlock waitingTask : procedureControlBlocks) {
-                ++waitingTask.elapsedTime;
+                ++waitingTask.basicPCB.elapsedTime;
+
+                // 任务的 elapsedTime 超过 DeadLine 的, 这样子的话就没有必要进行调度了
+                if (waitingTask.basicPCB.elapsedTime > waitingTask.basicPCB.deadline)
+                    isSchedulable = false;
             }
         }
 
@@ -602,122 +560,130 @@ public class MixedCriticalSystem {
     public static void ReleaseResource(ProcedureControlBlock runningTask)
     {
         //get the id of resource which is need to be released
-        int resource_id = runningTask.accessResourceIndex.get(runningTask.requestResourceTh);
+        int resource_id = runningTask.basicPCB.accessResourceIndex.get(runningTask.basicPCB.requestResourceTh);
         Resource resource = totalResources.get(resource_id);
 
         // Release the resource
-        CPUEventTimePointsRecords.get(runningTask.runningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "unlocked", systemClock, resource_id));
-        TaskEventTimePointsRecords.get(runningTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "unlocked", systemClock, resource_id));
+        CPUEventTimePointsRecords.get(runningTask.basicPCB.baseRunningCpuCore).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "unlocked", systemClock, resource_id));
+        TaskEventTimePointsRecords.get(runningTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "unlocked", systemClock, resource_id));
 
         //1 reset some parameter of resource
-        resource.isOccupied = false;          //now it is free
+        resource.basicResource.isOccupied = false;          //now it is free
 
         //2 reset some parameter of running task
-        if (!resource.isGlobal)
-            runningTask.priorities.pop();       //remove the resource from task's request list
+        if (!resource.basicResource.isGlobal)
+            runningTask.basicPCB.priorities.pop();       //remove the resource from task's request list
 
-        ++runningTask.requestResourceTh;    //now the task continue to request next resource.
+        ++runningTask.basicPCB.requestResourceTh;    //now the task continue to request next resource.
 
-        runningTask.isAccessGlobalResource = runningTask.isAccessLocalResource = false;
+        runningTask.basicPCB.isAccessGlobalResource = runningTask.basicPCB.isAccessLocalResource = false;
 
         //3 check if exists a task waiting for this resource
         if(!resource.waitingQueue.isEmpty()){
             //if exists,get the PCB of new task(n_task)(First In First Out)
-            ProcedureControlBlock n_task = resource.waitingQueue.poll();
+            ProcedureControlBlock n_task = resource.waitingQueue.get(0);
+            resource.waitingQueue.remove(0);
 
             // if indicator is HI, low task can't be chosen
-            while (n_task.criticality < criticality_indicator) {
+            while (n_task.basicPCB.criticality < criticality_indicator) {
                 // record: killed
-                ++taskFinishTimes[n_task.staticTaskId];
-                taskStates.get(n_task.dynamicTaskId - 1).killTask(systemClock);
-                TaskEventTimePointsRecords.get(n_task.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(n_task.staticTaskId, n_task.dynamicTaskId, "killed", systemClock, -1));
+                ++taskFinishTimes[n_task.basicPCB.staticTaskId];
+                taskStates.get(n_task.basicPCB.dynamicTaskId).killTask(systemClock);
+                TaskEventTimePointsRecords.get(n_task.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(n_task.basicPCB.staticTaskId, n_task.basicPCB.dynamicTaskId, "killed", systemClock, -1));
                 if (resource.waitingQueue.isEmpty())
                     return;
-                n_task = resource.waitingQueue.poll();
+                n_task = resource.waitingQueue.get(0);
+                resource.waitingQueue.remove(0);
             }
 
-            resource.isOccupied = true;
+            resource.basicResource.isOccupied = true;
             //Assign resources to this task
 
             if(criticality_indicator == 0)
-                n_task.remainResourceComputationTime = resource.c_low;
+                n_task.basicPCB.remainResourceComputationTime = resource.basicResource.c_low;
             else
-                n_task.remainResourceComputationTime = resource.c_high;
+                n_task.basicPCB.remainResourceComputationTime = resource.basicResource.c_high;
 
             // Modify the task's attributes.
-            if(resource.isGlobal) {
-                n_task.isAccessGlobalResource=true;
-                n_task.spin = false;
+            if(resource.basicResource.isGlobal) {
+                n_task.basicPCB.isAccessGlobalResource=true;
+                n_task.basicPCB.spin = false;
 
                 // 处理 indirect spinning delay
-                for (ProcedureControlBlock waitingTask : waitingTasksPerCore.get(n_task.runningCpuCore))
+                for (ProcedureControlBlock waitingTask : waitingTasksPerCore.get(n_task.basicPCB.baseRunningCpuCore))
                 {
-                    if (waitingTask.basePriority < n_task.basePriority)
+                    if (waitingTask.basicPCB.basePriority < n_task.basicPCB.basePriority)
                     {
-                        taskStates.get(waitingTask.dynamicTaskId - 1).endState(systemClock);
+                        taskStates.get(waitingTask.basicPCB.dynamicTaskId).endState(systemClock);
                     }
                 }
 
             } else {
-                n_task.isAccessLocalResource=true;
-                n_task.priorities.push(resource.ceiling.get(n_task.runningCpuCore));
+                n_task.basicPCB.isAccessLocalResource=true;
+                n_task.basicPCB.priorities.push(resource.basicResource.ceiling.get(n_task.basicPCB.baseRunningCpuCore));
             }
 
-            n_task.systemCriticalityWhenAccessResource = criticality_indicator;
+            n_task.basicPCB.systemCriticalityWhenAccessResource = criticality_indicator;
 
             // End the new task's old event and create a new event.
-            ModifyRunningEvent(n_task.runningCpuCore, n_task);
+            ModifyRunningEvent(n_task.basicPCB.baseRunningCpuCore, n_task);
 
             // Get a resource:
-            CPUEventTimePointsRecords.get(n_task.runningCpuCore).add(new EventTimePoint(runningTask.staticTaskId, runningTask.dynamicTaskId, "lock", systemClock, resource_id));
+            CPUEventTimePointsRecords.get(n_task.basicPCB.baseRunningCpuCore).add(new EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "lock", systemClock, resource_id));
 
             // record task state
-            TaskStateInformation waitingTaskState = taskStates.get(n_task.dynamicTaskId - 1);
-            waitingTaskState.priority = n_task.priorities.peek();
-            if (n_task.isAccessGlobalResource)
+            TaskStateInformation waitingTaskState = taskStates.get(n_task.basicPCB.dynamicTaskId);
+            waitingTaskState.priority = n_task.basicPCB.priorities.peek();
+            if (n_task.basicPCB.isAccessGlobalResource)
                 waitingTaskState.priority = Integer.MAX_VALUE;
             waitingTaskState.endState(systemClock);
-            waitingTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, resource.id);
-            waitingTaskState.resourceId = resource.id;
-            waitingTaskState.remainResourceComputationTime = n_task.remainResourceComputationTime;
+            waitingTaskState.addState(TASK_STATE.RUNNING_WITH_LOCK, systemClock, resource.basicResource.id);
+            waitingTaskState.resourceId = resource.basicResource.id;
+            waitingTaskState.remainResourceComputationTime = n_task.basicPCB.remainResourceComputationTime;
         }
 
         // Modify the execution time.
-        if (runningTask.systemCriticalityWhenAccessResource == 1)
-            runningTask.executedTime -= (resource.c_high - resource.c_low);
+        if (runningTask.basicPCB.systemCriticalityWhenAccessResource == 1)
+            runningTask.basicPCB.executedTime -= (resource.basicResource.c_high - resource.basicResource.c_low);
     }
 
     /* Function that can release task. */
     public static void ReleaseTasks()
     {
-        Random random = new Random();
-        for (int i = 0; i < totalTasks.size(); ++i)
+        // 1. 某一时间点有任务需要释放
+        // 2. 当前的时间点 = 任务释放的时间点
+        if (itemTaskReleaseTimes != null && itemTaskReleaseTimes.getKey() == systemClock)
         {
-            // Even if the time elapsed since the last release is greater than the period, it still has a probability of being released.
-            if (timeSinceLastRelease[i] >= totalTasks.get(i).period && random.nextDouble() < 0.2)
+            for (Integer releaseTaskId : itemTaskReleaseTimes.getValue())
             {
                 // if at HI, low task be seen finished
-                if (totalTasks.get(i).criticality < criticality_indicator){
-                    ++taskFinishTimes[totalTasks.get(i).staticTaskId];
+                if (totalTasks.get(releaseTaskId).basicPCB.criticality < criticality_indicator){
+                    ++taskFinishTimes[totalTasks.get(releaseTaskId).basicPCB.staticTaskId];
+                    continue;
                 }
-                // reset
-                timeSinceLastRelease[i] = 0;
+
                 // initialize the release task and set its pid.
-                ProcedureControlBlock releaseTask = new ProcedureControlBlock(totalTasks.get(i));
-                releaseTask.dynamicTaskId = ++releaseTaskNum;
-                waitingTasksPerCore.get(totalTasks.get(i).runningCpuCore).add(releaseTask);
-                // store state information for the release task
-                taskStates.add(new TaskStateInformation(releaseTask.staticTaskId, releaseTask.dynamicTaskId, releaseTask.priorities.peek(), releaseTask.runningCpuCore));
-                System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.staticTaskId, releaseTask.dynamicTaskId, systemClock);
+                com.example.serveside.service.msrp.entity.ProcedureControlBlock releaseTask = new com.example.serveside.service.msrp.entity.ProcedureControlBlock(totalTasks.get(releaseTaskId));
+                releaseTask.basicPCB.dynamicTaskId = releaseTaskNum++;
+                waitingTasksPerCore.get(totalTasks.get(releaseTaskId).basicPCB.baseRunningCpuCore).add(releaseTask);
 
-                releaseTaskInformationRecords.add(new TaskInformation(releaseTask, systemClock));
+                // 记录一下发布的任务的基本信息
+                releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
 
-                // Record the event time point that the task was released.
+                // 记录一下发布的任务的基本信息
+                taskStates.add(new TaskStateInformation(releaseTask.basicPCB.staticTaskId, releaseTask.basicPCB.dynamicTaskId, releaseTask.basicPCB.priorities.peek(), releaseTask.basicPCB.baseRunningCpuCore));
+                System.out.printf("Release Task:\n\tStatic Task id:%d\n\tDynamic Task id:%d\n\tRelease Time:%d\n\n", releaseTask.basicPCB.staticTaskId, releaseTask.basicPCB.dynamicTaskId, systemClock);
+
+                // 记录一下任务发布的时间点
                 TaskEventTimePointsRecords.add(new ArrayList<>());
-                TaskEventTimePointsRecords.get(releaseTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(releaseTask.staticTaskId, releaseTask.dynamicTaskId, "release", systemClock, -1));
+                TaskEventTimePointsRecords.get(releaseTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.basicPCB.staticTaskId, releaseTask.basicPCB.dynamicTaskId, "release", systemClock, -1));
 
-            }else
-                ++timeSinceLastRelease[i];
+            }
+
+            if (iteratorTaskReleaseTimes.hasNext())
+                itemTaskReleaseTimes = iteratorTaskReleaseTimes.next();
+            else
+                itemTaskReleaseTimes = null;
         }
     }
 
@@ -741,15 +707,15 @@ public class MixedCriticalSystem {
                 continue;
 
             // Firstly, sort the ArrayList by the priority from largest to smallest
-            waitingTasks.sort((task1, task2) -> -Integer.compare(task1.priorities.peek(), task2.priorities.peek()));
+            waitingTasks.sort((task1, task2) -> -Integer.compare(task1.basicPCB.priorities.peek(), task2.basicPCB.priorities.peek()));
             ProcedureControlBlock waitingTask = waitingTasks.get(0);
 
             // if indicator is HI, low task can't be chosen
-            while (waitingTask.criticality < criticality_indicator) {
+            while (waitingTask.basicPCB.criticality < criticality_indicator) {
                 // record :kill
-                ++taskFinishTimes[waitingTask.staticTaskId];
-                taskStates.get(waitingTask.dynamicTaskId - 1).killTask(systemClock);
-                TaskEventTimePointsRecords.get(waitingTask.dynamicTaskId - 1).add(new com.example.serveside.response.EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "killed", systemClock, -1));
+                ++taskFinishTimes[waitingTask.basicPCB.staticTaskId];
+                taskStates.get(waitingTask.basicPCB.dynamicTaskId).killTask(systemClock);
+                TaskEventTimePointsRecords.get(waitingTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(waitingTask.basicPCB.staticTaskId, waitingTask.basicPCB.dynamicTaskId, "killed", systemClock, -1));
                 waitingTasks.remove(0);
                 if (waitingTasks.isEmpty())
                     break;
@@ -766,13 +732,13 @@ public class MixedCriticalSystem {
                 runningTaskPerCore.set(i, waitingTask);
                 // remove the waitingTask from the waitingTasks
                 waitingTasks.remove(0);
-                runningTaskPerCore.get(i).runningCpuCore = i;
+                runningTaskPerCore.get(i).basicPCB.baseRunningCpuCore = i;
 
                 // modify the event information.
                 ModifyRunningEvent(i, waitingTask);
 
                 // add running state
-                TaskStateInformation runningTaskState = taskStates.get(waitingTask.dynamicTaskId - 1);
+                TaskStateInformation runningTaskState = taskStates.get(waitingTask.basicPCB.dynamicTaskId);
                 // record task running cpu for record indirect spin
                 runningTaskState.endState(systemClock);
                 if (runningTaskState.remainResourceComputationTime > 0)
@@ -781,7 +747,7 @@ public class MixedCriticalSystem {
                     runningTaskState.addState(TASK_STATE.RUNNING, systemClock);
 
                 // Add switch-task event.
-                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task", systemClock, -1));
+                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(waitingTask.basicPCB.staticTaskId, waitingTask.basicPCB.dynamicTaskId, "switch-task", systemClock, -1));
 
                 continue;
             }
@@ -791,11 +757,11 @@ public class MixedCriticalSystem {
             ProcedureControlBlock runningTask = runningTaskPerCore.get(i);
 
             // If the task is waiting for a global resource, we can't stop it.
-            if (runningTask.spin)
+            if (runningTask.basicPCB.spin)
                 continue;
 
             // running task just use cpu to compute, doesn't access the resource. What's more, the task's priority is lower than the waiting task.
-            if (!runningTask.isAccessLocalResource && !runningTask.isAccessGlobalResource && runningTask.priorities.peek() < waitingTask.priorities.peek())
+            if (!runningTask.basicPCB.isAccessLocalResource && !runningTask.basicPCB.isAccessGlobalResource && runningTask.basicPCB.priorities.peek() < waitingTask.basicPCB.priorities.peek())
             {
                 // put the running task into the waiting queue.
                 waitingTasks.add(runningTask);
@@ -803,17 +769,17 @@ public class MixedCriticalSystem {
                 runningTaskPerCore.set(i, waitingTask);
                 // remove it from waiting tasks.
                 waitingTasks.remove(0);
-                runningTaskPerCore.get(i).runningCpuCore = i;
+                runningTaskPerCore.get(i).basicPCB.baseRunningCpuCore = i;
 
                 // Modify the event information.
                 ModifyRunningEvent(i, waitingTask);
 
                 // end state for running task
-                TaskStateInformation modifyTaskState = taskStates.get(runningTask.dynamicTaskId - 1);
+                TaskStateInformation modifyTaskState = taskStates.get(runningTask.basicPCB.dynamicTaskId);
                 modifyTaskState.endState(systemClock);
                 modifyTaskState.addState(TASK_STATE.PREEMPTED, systemClock);
                 // add running state for waitting task
-                modifyTaskState = taskStates.get(waitingTask.dynamicTaskId - 1);
+                modifyTaskState = taskStates.get(waitingTask.basicPCB.dynamicTaskId);
                 // record task running cpu for record indirect spin
                 modifyTaskState.endState(systemClock);
                 if (modifyTaskState.remainResourceComputationTime > 0)
@@ -822,11 +788,11 @@ public class MixedCriticalSystem {
                     modifyTaskState.addState(TASK_STATE.RUNNING, systemClock);
 
                 // Add switch-task event.
-                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task", systemClock, -1));
+                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(waitingTask.basicPCB.staticTaskId, waitingTask.basicPCB.dynamicTaskId, "switch-task", systemClock, -1));
             }
 
             // running task is access local resource and priority is lower.
-            if (runningTask.isAccessLocalResource && runningTask.priorities.peek() < waitingTask.priorities.peek())
+            if (runningTask.basicPCB.isAccessLocalResource && runningTask.basicPCB.priorities.peek() < waitingTask.basicPCB.priorities.peek())
             {
                 // put the running task into the waiting queue.
                 waitingTasks.add(runningTask);
@@ -834,17 +800,17 @@ public class MixedCriticalSystem {
                 runningTaskPerCore.set(i, waitingTask);
                 // remove it from waiting task.
                 waitingTasks.remove(0);
-                runningTaskPerCore.get(i).runningCpuCore = i;
+                runningTaskPerCore.get(i).basicPCB.baseRunningCpuCore = i;
 
                 // Modify the event information.
                 ModifyRunningEvent(i, waitingTask);
 
                 // end state for running task
-                TaskStateInformation modifyTaskState = taskStates.get(runningTask.dynamicTaskId - 1);
+                TaskStateInformation modifyTaskState = taskStates.get(runningTask.basicPCB.dynamicTaskId);
                 modifyTaskState.endState(systemClock);
                 modifyTaskState.addState(TASK_STATE.PREEMPTED, systemClock);
                 // add running state for waitting task
-                modifyTaskState = taskStates.get(waitingTask.dynamicTaskId - 1);
+                modifyTaskState = taskStates.get(waitingTask.basicPCB.dynamicTaskId);
                 // record task running cpu for record indirect spin
                 modifyTaskState.endState(systemClock);
                 if (modifyTaskState.remainResourceComputationTime > 0)
@@ -853,7 +819,7 @@ public class MixedCriticalSystem {
                     modifyTaskState.addState(TASK_STATE.RUNNING, systemClock);
 
                 // Add switch-task event.
-                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(waitingTask.staticTaskId, waitingTask.dynamicTaskId, "switch-task", systemClock, -1));
+                CPUEventTimePointsRecords.get(i).add(new EventTimePoint(waitingTask.basicPCB.staticTaskId, waitingTask.basicPCB.dynamicTaskId, "switch-task", systemClock, -1));
             }
         }
 
@@ -870,9 +836,9 @@ public class MixedCriticalSystem {
                 // 2. runningTask 正在访问 global resource
                 // 3. runningTask 访问 local resource，但是 runningTask 优先级被短暂提升
                 // 除此之外，我们还需要确保 waitingTask 此前没有执行过
-                if (runningTask != null && runningTask.basePriority < waitingTask.basePriority && waitingTask.executedTime == 0)
+                if (runningTask != null && runningTask.basicPCB.basePriority < waitingTask.basicPCB.basePriority && waitingTask.basicPCB.executedTime == 0)
                 {
-                    taskStates.get(waitingTask.dynamicTaskId - 1).addState(TASK_STATE.ARRIVAL_BLOCK, systemClock);
+                    taskStates.get(waitingTask.basicPCB.dynamicTaskId).addState(TASK_STATE.ARRIVAL_BLOCK, systemClock);
                 }
             }
         }

@@ -32,30 +32,45 @@ public class TaskInformation
         this.priority = priority;
         this.criticality = criticality;
         this.releaseTime = releaseTime;
-        this.resourceAccessTime = resourceAccessTime;
         this.resourceAccessIndex = resourceAccessIndex;
+
+        this.resourceAccessTime = new ArrayList<>();
+        for (Integer accessTime : resourceAccessTime)
+        {
+            this.resourceAccessTime.add(accessTime + releaseTime);
+        }
     }
 
     public TaskInformation(com.example.serveside.service.msrp.entity.ProcedureControlBlock procedureControlBlock, Integer systemClock)
     {
-        this.staticPid = procedureControlBlock.staticTaskId;
-        this.dynamicPid = procedureControlBlock.dynamicTaskId;
-        this.priority = procedureControlBlock.priorities.peek();
-        this.criticality = procedureControlBlock.criticality;
-        this.resourceAccessTime = procedureControlBlock.resourceAccessTime;
-        this.resourceAccessIndex = procedureControlBlock.accessResourceIndex;
+        this.staticPid = procedureControlBlock.basicPCB.staticTaskId;
+        this.dynamicPid = procedureControlBlock.basicPCB.dynamicTaskId;
+        this.priority = procedureControlBlock.basicPCB.priorities.peek();
+        this.criticality = procedureControlBlock.basicPCB.criticality;
+        this.resourceAccessIndex = procedureControlBlock.basicPCB.accessResourceIndex;
         this.releaseTime = systemClock;
+
+        this.resourceAccessTime = new ArrayList<>();
+        for (Integer accessTime : procedureControlBlock.basicPCB.resourceAccessTime)
+        {
+            this.resourceAccessTime.add(accessTime + systemClock);
+        }
     }
 
     public TaskInformation(com.example.serveside.service.mrsp.entity.ProcedureControlBlock procedureControlBlock, Integer systemClock)
     {
-        this.staticPid = procedureControlBlock.staticTaskId;
-        this.dynamicPid = procedureControlBlock.dynamicTaskId;
-        this.priority = procedureControlBlock.priorities.peek();
-        this.criticality = procedureControlBlock.criticality;
-        this.resourceAccessTime = procedureControlBlock.resourceAccessTime;
-        this.resourceAccessIndex = procedureControlBlock.accessResourceIndex;
+        this.staticPid = procedureControlBlock.basicPCB.staticTaskId;
+        this.dynamicPid = procedureControlBlock.basicPCB.dynamicTaskId;
+        this.priority = procedureControlBlock.basicPCB.priorities.peek();
+        this.criticality = procedureControlBlock.basicPCB.criticality;
+        this.resourceAccessIndex = procedureControlBlock.basicPCB.accessResourceIndex;
         this.releaseTime = systemClock;
+
+        this.resourceAccessTime = new ArrayList<>();
+        for (Integer accessTime : procedureControlBlock.basicPCB.resourceAccessTime)
+        {
+            this.resourceAccessTime.add(accessTime + systemClock);
+        }
     }
 
     public Integer getStaticPid() {

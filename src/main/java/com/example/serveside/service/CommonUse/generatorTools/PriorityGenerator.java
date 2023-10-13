@@ -1,7 +1,6 @@
-package com.example.serveside.service.mrsp.generatorTools;
+package com.example.serveside.service.CommonUse.generatorTools;
 
-import com.example.serveside.service.mrsp.entity.MixedCriticalSystem;
-import com.example.serveside.service.mrsp.entity.ProcedureControlBlock;
+import com.example.serveside.service.CommonUse.BasicPCB;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -9,14 +8,14 @@ import java.util.Comparator;
 public class PriorityGenerator {
 
     // use the deadline monotonic priority assignment protocol to assign priority to task
-    public ArrayList<ArrayList<ProcedureControlBlock>> assignPrioritiesByDM(ArrayList<ArrayList<ProcedureControlBlock>> tasksToAssgin) {
+    public ArrayList<ArrayList<BasicPCB>> assignPrioritiesByDM(ArrayList<ArrayList<BasicPCB>> tasksToAssgin) {
         if (tasksToAssgin == null) {
             return null;
         }
 
         // this is a shallow copy
-        ArrayList<ArrayList<ProcedureControlBlock>> tasks = new ArrayList<>(tasksToAssgin);
-        for (ArrayList<ProcedureControlBlock> task : tasks) {
+        ArrayList<ArrayList<BasicPCB>> tasks = new ArrayList<>(tasksToAssgin);
+        for (ArrayList<BasicPCB> task : tasks) {
             new PriorityGenerator().deadlineMonotonicPriorityAssignment(task, task.size());
         }
 
@@ -24,7 +23,7 @@ public class PriorityGenerator {
     }
 
     //
-    private void deadlineMonotonicPriorityAssignment(ArrayList<ProcedureControlBlock> taskset, int numberOfTask) {
+    private void deadlineMonotonicPriorityAssignment(ArrayList<BasicPCB> taskset, int numberOfTask) {
         ArrayList<Integer> priorities = generatePriorities(numberOfTask);
 
         /* deadline monotonic assignment */
@@ -40,7 +39,7 @@ public class PriorityGenerator {
     private ArrayList<Integer> generatePriorities(int number) {
         ArrayList<Integer> priorities = new ArrayList<>();
         for (int i = 0; i < number; i++)
-            priorities.add(MixedCriticalSystem.MAX_PRIORITY - (i + 1) * 2);
+            priorities.add(SimpleSystemGenerator.MAX_PRIORITY - (i + 1) * 2);
         return priorities;
     }
 }
