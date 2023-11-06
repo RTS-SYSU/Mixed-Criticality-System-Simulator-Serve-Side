@@ -13,13 +13,17 @@ public class EventTimePoint {
     /* 事件发生的时间点 */
     private Integer eventTime;
 
+    /* 访问/释放的资源 ID */
+    private Integer resourceId;
+
     /* 构造函数 */
-    public EventTimePoint(Integer staticPid, Integer dynamicPid, String event, Integer eventTime)
+    public EventTimePoint(Integer staticPid, Integer dynamicPid, String event, Integer eventTime, Integer resourceId)
     {
         this.staticPid = staticPid;
         this.dynamicPid = dynamicPid;
         this.event = event;
         this.eventTime = eventTime;
+        this.resourceId = resourceId;
     }
 
     public void setStaticPid(Integer staticPid)
@@ -61,4 +65,8 @@ public class EventTimePoint {
     {
         return this.eventTime;
     }
+
+    public Integer getResourceId() { return this.resourceId; }
+
+    public void setResourceId(Integer resourceId) { this.resourceId = resourceId; }
 }

@@ -1,29 +1,76 @@
 package com.example.serveside.response;
 
-public class TaskInformation {
+import java.util.ArrayList;
+
+public class TaskInformation
+{
     /* 静态 Pid */
     private Integer staticPid;
 
     /* 动态 Pid */
     private Integer dynamicPid;
 
-    /* 任务在 CPU 上的状态 */
-    private String state;
+    /* 优先级 */
+    private Integer priority;
 
-    /* 任务开始占据 CPU 的时间 */
-    private Integer startTime;
+    /* 关键级 */
+    private Integer criticality;
 
-    /* 任务结束占据 CPU 的时间 */
-    private Integer endTime;
+    /* 任务发布时间 */
+    private Integer releaseTime;
 
-    /* 构造函数 */
-    public TaskInformation(Integer staticPid, Integer dynamicPid, String state, Integer startTime, Integer endTime)
+    /* 资源访问的时间 */
+    private ArrayList<Integer> resourceAccessTime;
+
+    /* 访问的资源 */
+    private ArrayList<Integer> resourceAccessIndex;
+
+    public TaskInformation(Integer staticPid, Integer dynamicPid, Integer priority, Integer criticality, Integer releaseTime, ArrayList<Integer> resourceAccessTime, ArrayList<Integer> resourceAccessIndex)
     {
         this.staticPid = staticPid;
         this.dynamicPid = dynamicPid;
-        this.state = state;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.priority = priority;
+        this.criticality = criticality;
+        this.releaseTime = releaseTime;
+        this.resourceAccessIndex = resourceAccessIndex;
+
+        this.resourceAccessTime = new ArrayList<>();
+        for (Integer accessTime : resourceAccessTime)
+        {
+            this.resourceAccessTime.add(accessTime + releaseTime);
+        }
+    }
+
+    public TaskInformation(com.example.serveside.service.msrp.entity.ProcedureControlBlock procedureControlBlock, Integer systemClock)
+    {
+        this.staticPid = procedureControlBlock.basicPCB.staticTaskId;
+        this.dynamicPid = procedureControlBlock.basicPCB.dynamicTaskId;
+        this.priority = procedureControlBlock.basicPCB.priorities.peek();
+        this.criticality = procedureControlBlock.basicPCB.criticality;
+        this.resourceAccessIndex = procedureControlBlock.basicPCB.accessResourceIndex;
+        this.releaseTime = systemClock;
+
+        this.resourceAccessTime = new ArrayList<>();
+        for (Integer accessTime : procedureControlBlock.basicPCB.resourceAccessTime)
+        {
+            this.resourceAccessTime.add(accessTime + systemClock);
+        }
+    }
+
+    public TaskInformation(com.example.serveside.service.mrsp.entity.ProcedureControlBlock procedureControlBlock, Integer systemClock)
+    {
+        this.staticPid = procedureControlBlock.basicPCB.staticTaskId;
+        this.dynamicPid = procedureControlBlock.basicPCB.dynamicTaskId;
+        this.priority = procedureControlBlock.basicPCB.priorities.peek();
+        this.criticality = procedureControlBlock.basicPCB.criticality;
+        this.resourceAccessIndex = procedureControlBlock.basicPCB.accessResourceIndex;
+        this.releaseTime = systemClock;
+
+        this.resourceAccessTime = new ArrayList<>();
+        for (Integer accessTime : procedureControlBlock.basicPCB.resourceAccessTime)
+        {
+            this.resourceAccessTime.add(accessTime + systemClock);
+        }
     }
 
     public Integer getStaticPid() {
@@ -34,17 +81,21 @@ public class TaskInformation {
         return this.dynamicPid;
     }
 
-    public String getState() {
-        return this.state;
+    public Integer getPriority() {
+        return this.priority;
     }
 
-    public Integer getStartTime() {
-        return this.startTime;
+    public Integer getCriticality() {
+        return this.criticality;
     }
 
-    public Integer getEndTime() {
-        return this.endTime;
+    public Integer getReleaseTime() {
+        return this.releaseTime;
     }
+
+    public ArrayList<Integer> getResourceAccessTime() { return this.resourceAccessTime; }
+
+    public ArrayList<Integer> getResourceAccessIndex() { return this.resourceAccessIndex; }
 
     public void setStaticPid(Integer staticPid) {
         this.staticPid = staticPid;
@@ -54,15 +105,17 @@ public class TaskInformation {
         this.dynamicPid = dynamicPid;
     }
 
-    public void setState(String state){
-        this.state = state;
+    public void setPriority(Integer priority) {
+        this.priority = priority;
     }
 
-    public void setStartTime(Integer startTime) {
-        this.startTime = startTime;
+    public void setCriticality(Integer criticality) {
+        this.criticality = criticality;
     }
 
-    public void setEndTime(Integer endTime) {
-        this.endTime = endTime;
-    }
+    public void setReleaseTime(Integer releaseTime) { this.releaseTime = releaseTime; }
+
+    public void setResourceAccessTime(ArrayList<Integer> resourceAccessTime) { this.resourceAccessTime = resourceAccessTime; }
+
+    public void setResourceAccessIndex(ArrayList<Integer> resourceAccessIndex) { this.resourceAccessIndex = resourceAccessIndex; }
 }

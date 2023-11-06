@@ -1,4 +1,4 @@
-package com.example.serveside.service.msrp.generatorTools;
+package com.example.serveside.service.CommonUse.generatorTools;
 
 import java.util.ArrayList;
 import java.util.Random;

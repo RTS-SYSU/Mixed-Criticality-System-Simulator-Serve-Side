@@ -43,14 +43,24 @@ public class EventInformation
     public EventInformation(int _startTime, ProcedureControlBlock runningTask, int criticality_indicator)
     {
         startTime = _startTime;
-        dynamicTaskId = runningTask.dynamicTaskId;
-        staticTaskId = runningTask.staticTaskId;
-        spin = runningTask.spin;
-        isAccessGlobalResource = runningTask.isAccessGlobalResource;
-        isAccessLocalResource = runningTask.isAccessLocalResource;
+        dynamicTaskId = runningTask.basicPCB.dynamicTaskId;
+        staticTaskId = runningTask.basicPCB.staticTaskId;
+        spin = runningTask.basicPCB.spin;
+        isAccessGlobalResource = runningTask.basicPCB.isAccessGlobalResource;
+        isAccessLocalResource = runningTask.basicPCB.isAccessLocalResource;
 
-        requestResourceIndex = runningTask.isAccessGlobalResource || runningTask.isAccessLocalResource || runningTask.spin ? runningTask.accessResourceIndex.get(runningTask.requestResourceTh ) : -1;
+        requestResourceIndex = runningTask.basicPCB.isAccessGlobalResource || runningTask.basicPCB.isAccessLocalResource || runningTask.basicPCB.spin ? runningTask.basicPCB.accessResourceIndex.get(runningTask.basicPCB.requestResourceTh ) : -1;
 
         systemCriticality = criticality_indicator;
+    }
+
+    /* Get the corresponding state according to the information */
+    public String getState() {
+        if (this.spin)
+            return "direct-spinning";
+        else if (this.isAccessGlobalResource || this.isAccessLocalResource)
+            return "access-resource";
+        else
+            return "normal-execution";
     }
 }
