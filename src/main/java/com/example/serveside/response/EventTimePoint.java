@@ -1,21 +1,43 @@
 package com.example.serveside.response;
 
+/**
+ * {@code EventInformation} 用于记录任务在执行过程中发生的事件（任务释放、请求资源、释放资源等）。
+ */
 public class EventTimePoint {
-    /* 静态 Pid */
+    /**
+     * 任务静态标识符。
+     */
     private Integer staticPid;
 
-    /* 动态 Pid */
+    /**
+     * 任务动态标识符。
+     */
     private Integer dynamicPid;
 
-    /* 所发生的事件 */
+    /**
+     * 发生的事件。
+     */
     private String event;
 
-    /* 事件发生的时间点 */
+    /**
+     * 事件发生的时间。
+     */
     private Integer eventTime;
 
-    /* 访问/释放的资源 ID */
+    /**
+     * 访问或释放的资源的标识符。
+     */
     private Integer resourceId;
 
+    /**
+     * 构造函数，记录任务在执行过程中发生的事件。
+     *
+     * @param staticPid 任务静态标识符。
+     * @param dynamicPid 任务动态标识符。
+     * @param event 发生的事件。
+     * @param eventTime 事件发生的时间。
+     * @param resourceId 访问或释放的资源的标识符。
+     */
     /* 构造函数 */
     public EventTimePoint(Integer staticPid, Integer dynamicPid, String event, Integer eventTime, Integer resourceId)
     {
@@ -26,6 +48,7 @@ public class EventTimePoint {
         this.resourceId = resourceId;
     }
 
+    /* 以下均是上面属性的 setter 和 getter 函数。 */
     public void setStaticPid(Integer staticPid)
     {
         this.staticPid = staticPid;

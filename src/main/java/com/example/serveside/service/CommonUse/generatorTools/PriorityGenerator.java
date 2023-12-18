@@ -28,6 +28,7 @@ public class PriorityGenerator {
 
         /* deadline monotonic assignment */
         taskset.sort(Comparator.comparingDouble(t -> t.deadline));
+        /* 从小到大排序 */
         priorities.sort((p1, p2) -> -Integer.compare(p1, p2));
         for (int i = 0; i < taskset.size(); i++) {
             taskset.get(i).priorities.add(priorities.get(i));
@@ -39,7 +40,10 @@ public class PriorityGenerator {
     private ArrayList<Integer> generatePriorities(int number) {
         ArrayList<Integer> priorities = new ArrayList<>();
         for (int i = 0; i < number; i++)
-            priorities.add(SimpleSystemGenerator.MAX_PRIORITY - (i + 1) * 2);
+            priorities.add(i + SimpleSystemGenerator.MIN_PRIORITY);
+
+        /* 从大到小排序 */
+        priorities.sort(Integer::compare);
         return priorities;
     }
 }

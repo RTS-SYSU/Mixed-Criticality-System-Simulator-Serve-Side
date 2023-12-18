@@ -1,20 +1,46 @@
 package com.example.serveside.response;
 
-import java.util.*;
-
+/**
+ * {@code TaskGanttInformation} 是后端向前端传递信息的载体，用于传输前端绘制任务甘特图所需的信息。
+ * <p>
+ *     {@code TaskGanttInformation} 包含任务的静态标识符、动态标识符、分配的处理器核心以及任务全周期执行情况和触发事件。
+ * </p>
+ */
 public class TaskGanttInformation
 {
-    /* 静态 Pid */
+    /**
+     *  任务静态标识符。
+     */
     private Integer staticPid;
 
-    /* 动态 Pid */
+    /**
+     *  任务动态标识符。
+     */
     private Integer dynamicPid;
 
-    /* 任务运行所在的 CPU 核*/
+    /**
+     *  任务分配的处理器核心。
+     */
     private Integer runningCPUCore;
 
-    /* 任务的运行状态 */
+    /**
+     * 前端绘制任务甘特图所需信息，即任务全周期执行情况和触发事件。
+     */
     private com.example.serveside.response.GanttInformation taskGanttInformation;
+
+
+    /**
+     * {@code TaskGanttInformation} 构造函数。
+     */
+    public TaskGanttInformation(Integer staticPid, Integer dynamicPid, Integer runningCPUCore, com.example.serveside.response.GanttInformation taskGanttInformation)
+    {
+        this.staticPid = staticPid;
+        this.dynamicPid = dynamicPid;
+        this.runningCPUCore = runningCPUCore;
+        this.taskGanttInformation = taskGanttInformation;
+    }
+
+    /* 以下均是上面属性的 setter 和 getter 函数。 */
 
     public void setStaticPid(Integer staticPid)
     {
@@ -54,13 +80,5 @@ public class TaskGanttInformation
     public com.example.serveside.response.GanttInformation getTaskGanttInformation()
     {
         return this.taskGanttInformation;
-    }
-
-    public TaskGanttInformation(Integer staticPid, Integer dynamicPid, Integer runningCPUCore, com.example.serveside.response.GanttInformation taskGanttInformation)
-    {
-        this.staticPid = staticPid;
-        this.dynamicPid = dynamicPid;
-        this.runningCPUCore = runningCPUCore;
-        this.taskGanttInformation = taskGanttInformation;
     }
 }

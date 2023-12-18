@@ -1,10 +1,9 @@
 package com.example.serveside.service.CommonUse.generatorTools;
 import com.example.serveside.service.CommonUse.BasicPCB;
 import com.example.serveside.service.CommonUse.BasicResource;
-import com.example.serveside.service.mrsp.entity.ProcedureControlBlock;
+import com.example.serveside.request.ConfigurationInformation;
 
 import java.util.*;
-
 
 public class SimpleSystemGenerator {
 
@@ -12,7 +11,7 @@ public class SimpleSystemGenerator {
      * 模拟器的基本配置信息
      * */
     /* The cpu core num. */
-    public static int TOTAL_CPU_CORE_NUM = 6;
+    public static int TOTAL_CPU_CORE_NUM = 2;
 
     /* The minimum period for every task. */
     public static int MIN_PERIOD = 100;
@@ -26,16 +25,16 @@ public class SimpleSystemGenerator {
     /* A ratio of task to access resource. */
     public static double RESOURCE_SHARING_FACTOR = 1;
 
-    /* The max priority in the system. */
-    public static final int MAX_PRIORITY = 1000;
+    /* The min priority in the system. */
+    public static final int MIN_PRIORITY = 1;
 
     /* Allocate a number of task to a partition. */
-    public static int NUMBER_OF_TASK_IN_A_PARTITION = 4;
+    public static int NUMBER_OF_TASK_IN_A_PARTITION = 3;
 
     /* define how many resources in the system */
     public enum RESOURCES_RANGE {
         /* partitions / 2 us */
-        HALF_PARITIONS,
+        HALF_PARTITIONS,
 
         /* partitions us */
         PARTITIONS,
@@ -46,7 +45,7 @@ public class SimpleSystemGenerator {
 
     /* define how long the critical section can be */
     public enum CS_LENGTH_RANGE {
-        VERY_LONG_CSLEN, LONG_CSLEN, MEDIUM_CS_LEN, SHORT_CS_LEN, VERY_SHORT_CS_LEN, Random
+            VERY_LONG_CSLEN, LONG_CSLEN, MEDIUM_CS_LEN, SHORT_CS_LEN, VERY_SHORT_CS_LEN, Random
     }
 
     public CS_LENGTH_RANGE cs_len_range;
@@ -59,38 +58,101 @@ public class SimpleSystemGenerator {
     public RESOURCES_RANGE numberOfResource;
     public double resourceSharingFactor;
 
-    public int total_tasks;
-    public int total_partitions;
+    public static int total_tasks;
+    public static int total_partitions;
     public double totalUtil;
 
-    // minT: MIN_PERIOD
-    // maxT: MAX_PERIOD
-    // total_partitions: the total num of the resources
-    // rsf: resource sharing factor
-    public SimpleSystemGenerator(int minT, int maxT, int total_partitions, int totalTasks, CS_LENGTH_RANGE cs_len_range,
-                                 RESOURCES_RANGE numberOfResources, double rsf, int number_of_max_access) {
+    public SimpleSystemGenerator(int _total_partitions, int _numberOfTaskInAPartition, int minT, int maxT, int _number_of_max_access, double _resourceSharingFactor, String resourceType) {
         this.minT = minT;
         this.maxT = maxT;
-        this.totalUtil = 0.3 * (double) totalTasks;
-        this.total_partitions = total_partitions;
-        this.total_tasks = totalTasks;
-        this.cs_len_range = cs_len_range;
-        this.numberOfResource = numberOfResources;
-        this.resourceSharingFactor = rsf;
-        this.number_of_max_access = number_of_max_access;
+        TOTAL_CPU_CORE_NUM = _total_partitions;
+        NUMBER_OF_TASK_IN_A_PARTITION = _numberOfTaskInAPartition;
+        NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE = _number_of_max_access;
+        this.resourceSharingFactor = _resourceSharingFactor;
+        total_partitions = TOTAL_CPU_CORE_NUM;
+        total_tasks = TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
+        this.totalUtil = 0.1 * (double) TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
+
+        switch (resourceType) {
+            case "VERY LONG LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.VERY_LONG_CSLEN;
+                break;
+            case "LONG LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.LONG_CSLEN;
+                break;
+            case "MEDIUM LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.MEDIUM_CS_LEN;
+                break;
+            case "SHORT LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.SHORT_CS_LEN;
+                break;
+            case "VERY SHORT LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.VERY_SHORT_CS_LEN;
+                break;
+            case "RANDOM":
+                this.cs_len_range = CS_LENGTH_RANGE.Random;
+                break;
+        }
+
     }
 
-    public SimpleSystemGenerator()
-    {
+    public SimpleSystemGenerator() {
         this.minT = MIN_PERIOD;
         this.maxT = MAX_PERIOD;
         this.totalUtil = 0.1 * (double) TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
-        this.total_partitions = TOTAL_CPU_CORE_NUM;
-        this.total_tasks = TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
-        this.cs_len_range = CS_LENGTH_RANGE.MEDIUM_CS_LEN;
+        total_partitions = TOTAL_CPU_CORE_NUM;
+        total_tasks = TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
+        this.cs_len_range = CS_LENGTH_RANGE.SHORT_CS_LEN;
         this.numberOfResource = RESOURCES_RANGE.PARTITIONS;
         this.resourceSharingFactor = RESOURCE_SHARING_FACTOR;
         this.number_of_max_access = NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE;
+    }
+
+    public SimpleSystemGenerator(ConfigurationInformation requestInformation) {
+        TOTAL_CPU_CORE_NUM = requestInformation.getTotalCPUNum();
+        NUMBER_OF_TASK_IN_A_PARTITION = requestInformation.getNumberOfTaskInAPartition();
+        NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE = requestInformation.getNumberOfMaxAccessToOneResource();
+        total_partitions = TOTAL_CPU_CORE_NUM;
+        total_tasks = TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
+        
+        this.minT = requestInformation.getMinPeriod();
+        this.maxT = requestInformation.getMaxPeriod();
+        this.resourceSharingFactor = requestInformation.getResourceSharingFactor();
+        this.totalUtil = 0.1 * (double) TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
+        this.number_of_max_access = NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE;
+
+        switch (requestInformation.getResourceType()) {
+            case "VERY LONG LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.VERY_LONG_CSLEN;
+                break;
+            case "LONG LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.LONG_CSLEN;
+                break;
+            case "MEDIUM LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.MEDIUM_CS_LEN;
+                break;
+            case "SHORT LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.SHORT_CS_LEN;
+                break;
+            case "VERY SHORT LENGTH":
+                this.cs_len_range = CS_LENGTH_RANGE.VERY_SHORT_CS_LEN;
+                break;
+            case "RANDOM":
+                this.cs_len_range = CS_LENGTH_RANGE.Random;
+                break;
+        }
+
+        switch (requestInformation.getResourceNum()) {
+            case "HALF PARTITIONS" :
+                this.numberOfResource = RESOURCES_RANGE.HALF_PARTITIONS;
+                break;
+            case "PARTITIONS" :
+                this.numberOfResource = RESOURCES_RANGE.PARTITIONS;
+                break;
+            case "DOUBLE PARTITIONS" :
+                this.numberOfResource = RESOURCES_RANGE.DOUBLE_PARTITIONS;
+                break;
+        }
     }
 
     /*
@@ -105,18 +167,15 @@ public class SimpleSystemGenerator {
             if (tasks != null && WorstFitAllocation(tasks, total_partitions) == null)
                 tasks = null;
 
-            if (tasks != null)
-                System.out.print("Nice");
-            System.out.printf("Times: %d\n", times);
             ++times;
         }
 
         // choose half the tasks, criticality is high
         Random ran = new Random();
         for (int i = 0; i < tasks.size() / 2; i++) {
-            while(true){
-                int idx = ran.nextInt(tasks.size()-1);
-                if(tasks.get(idx).criticality == 0){
+            while (true) {
+                int idx = ran.nextInt(tasks.size() - 1);
+                if (tasks.get(idx).criticality == 0) {
                     tasks.get(idx).criticality = 1;
                     break;
                 }
@@ -249,74 +308,100 @@ public class SimpleSystemGenerator {
         return tasks;
     }
 
-    public ArrayList<BasicPCB> testGenerateTask(){
+    public ArrayList<BasicPCB> testGenerateTask() {
         ArrayList<BasicPCB> tasks = new ArrayList<>();
 
-        BasicPCB task = new BasicPCB(996, 50, 0.1, 0);
+        BasicPCB task = new BasicPCB(0, 100, 0.1, 0);
         task.criticality = 1;
-        task.totalNeededTime = 5;
+        task.totalNeededTime =10;
         tasks.add(task);
 
-        task = new BasicPCB(996, 50, 0.1, 1);
+        task = new BasicPCB(1, 100, 0.1, 1);
         task.criticality = 1;
-        task.totalNeededTime = 5;
+        task.totalNeededTime = 10;
         tasks.add(task);
 
-        task = new BasicPCB(998, 30, 0.1, 2);
+        task = new BasicPCB(2, 100, 0.1, 2);
         task.criticality = 1;
-        task.totalNeededTime = 3;
+        task.totalNeededTime = 10;
         tasks.add(task);
 
-        task = new BasicPCB(998, 50, 0.1, 3);
+        task = new BasicPCB(3, 100, 0.1, 3);
         task.criticality = 1;
-        task.totalNeededTime = 5;
+        task.totalNeededTime = 10;
         tasks.add(task);
+        task = new BasicPCB(4, 100, 0.1, 4);
+        task.criticality = 1;
+        task.totalNeededTime = 10;
+        tasks.add(task);
+        task = new BasicPCB(5, 100, 0.1, 5);
+        task.criticality = 1;
+        task.totalNeededTime = 10;
+        tasks.add(task);
+
 
         return tasks;
     }
 
 
-    public ArrayList<BasicResource> testGenerateResources()
-    {
+    public ArrayList<BasicResource> testGenerateResources() {
         ArrayList<BasicResource> resources = new ArrayList<>();
         resources.add(new BasicResource(0, 3, 3));
-        resources.add(new BasicResource(1, 3, 3));
+        resources.add(new BasicResource(1, 4, 4));
+
         return resources;
     }
 
-    public ArrayList<ArrayList<BasicPCB>> testGenerateResourceUsage(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources)
-    {
+    public ArrayList<ArrayList<BasicPCB>> testGenerateResourceUsage(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources) {
         BasicPCB taskTmp;
 
         // task 0
         taskTmp = tasks.get(0);
-        taskTmp.accessResourceIndex.add(0);
-        taskTmp.resourceAccessTime.add(1);
-
-        // task 1
+        taskTmp.accessResourceIndex.add(1);
+        taskTmp.resourceAccessTime.add(2);
+//
+// task 1
         taskTmp = tasks.get(1);
         taskTmp.accessResourceIndex.add(0);
-        taskTmp.resourceAccessTime.add(1);
-
-        // task 3
+        taskTmp.resourceAccessTime.add(4);
+// task 2
+        taskTmp = tasks.get(2);
+        taskTmp.accessResourceIndex.add(1);
+        taskTmp.resourceAccessTime.add(4);
+// task 3
         taskTmp = tasks.get(3);
+        taskTmp.accessResourceIndex.add(1);
+        taskTmp.resourceAccessTime.add(5);
+// task 4
+        taskTmp = tasks.get(4);
         taskTmp.accessResourceIndex.add(0);
-        taskTmp.resourceAccessTime.add(1);
+        taskTmp.resourceAccessTime.add(3);
+
+// task 5
+        taskTmp = tasks.get(5);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(5);
+
+
 
         // 分配 CPU
         ArrayList<ArrayList<BasicPCB>> generatedTaskSets = new ArrayList<>();
         ArrayList<BasicPCB> cpu0 = new ArrayList<>();
         tasks.get(0).baseRunningCpuCore = 0;
+        tasks.get(4).baseRunningCpuCore = 0;
+        tasks.get(5).baseRunningCpuCore = 0;
         cpu0.add(tasks.get(0));
-
-        tasks.get(2).baseRunningCpuCore = 0;
-        cpu0.add(tasks.get(2));
+        cpu0.add(tasks.get(4));
+        cpu0.add(tasks.get(5));
 
         ArrayList<BasicPCB> cpu1 = new ArrayList<>();
         tasks.get(1).baseRunningCpuCore = 1;
+        tasks.get(2).baseRunningCpuCore = 1;
         tasks.get(3).baseRunningCpuCore = 1;
         cpu1.add(tasks.get(1));
+        cpu1.add(tasks.get(2));
         cpu1.add(tasks.get(3));
+
 
         generatedTaskSets.add(cpu0);
         generatedTaskSets.add(cpu1);
@@ -343,7 +428,6 @@ public class SimpleSystemGenerator {
         }
 
 
-
         if (resources != null && !resources.isEmpty()) {
             // initialize the resource usage
             for (BasicResource res : resources) {
@@ -356,13 +440,11 @@ public class SimpleSystemGenerator {
                 /* for a given resource, traversing all the tasks and record the information */
                 /* for each partition */
                 resource.isGlobal = true;
-                for (ArrayList<BasicPCB> generatedTaskSet : generatedTaskSets)
-                {
+                for (ArrayList<BasicPCB> generatedTaskSet : generatedTaskSets) {
                     int ceiling = 0;
 
                     /* for each task in the given partition */
-                    for (BasicPCB task : generatedTaskSet)
-                    {
+                    for (BasicPCB task : generatedTaskSet) {
                         // set the request task and its cpu core
                         if (task.accessResourceIndex.contains(resource.id)) {
                             ceiling = Math.max(task.priorities.peek(), ceiling);
@@ -377,8 +459,7 @@ public class SimpleSystemGenerator {
                         resource.isGlobal = false;
                 }
             }
-        }
-        else {
+        } else {
             System.err.print("ERROR at resource usage, taskset is NULL!");
             System.exit(-1);
         }
@@ -399,7 +480,7 @@ public class SimpleSystemGenerator {
             case PARTITIONS:
                 number_of_resources = total_partitions;
                 break;
-            case HALF_PARITIONS:
+            case HALF_PARTITIONS:
                 number_of_resources = total_partitions / 2;
                 break;
             case DOUBLE_PARTITIONS:
@@ -440,7 +521,7 @@ public class SimpleSystemGenerator {
                 cs_len = csl;
 
             // c_high = c_low * [1~1.5]
-            int cs_len_high = (int) ( (1 + ran.nextFloat() / 2)  * cs_len);
+            int cs_len_high = (int) ((1 + ran.nextFloat() / 2) * cs_len);
 
             BasicResource resource = new BasicResource(i + 1, cs_len, cs_len_high);
             resources.add(resource);
@@ -492,24 +573,29 @@ public class SimpleSystemGenerator {
 
             // get a resource to allocate.
             for (int j = 0; j < tryToAllocateResourceTimes; ++j) {
+                if (number_of_max_access > 0) {
+                    int whileLoopTimes = 0;
+                    // get a resource to allocate.
+                    do {
+                        // random select a resource to access, satisfy: 1. allocateTimes[resource_index] <= max_access_time
+                        resource_index = ran.nextInt(resources.size());
+                        ++whileLoopTimes;
+                    } while (allocateTimes[resource_index] >= number_of_max_access && whileLoopTimes <=  resources.size());
 
-                // get a resource to allocate.
-                do {
-                    // random select a resource to access, satisfy: 1. allocateTimes[resource_index] <= max_access_time
-                    resource_index = ran.nextInt(resources.size());
-                } while (allocateTimes[resource_index] >= number_of_max_access);
+                    if (whileLoopTimes > resources.size())
+                        break;
 
-
-                // check the remaining computation time is larger than critical section length
-                // recourse use c_low to compute accessResourceIndex no matter what criticality the task is,
-                if ((endTime - startTime) > resources.get(resource_index).c_low + 1) {
-                    // we can allocate the resource.
-                    int resourceAccessTime = ran.nextInt(endTime - startTime - resources.get(resource_index).c_low) + startTime;
-                    task.accessResourceIndex.add(resource_index);
-                    task.resourceAccessTime.add(resourceAccessTime);
-                    // the time that next resource will use.
-                    startTime = resourceAccessTime + resources.get(resource_index).c_low;
-                    allocateTimes[resource_index] += 1;
+                    // check the remaining computation time is larger than critical section length
+                    // recourse use c_low to compute accessResourceIndex no matter what criticality the task is,
+                    if ((endTime - startTime) > resources.get(resource_index).c_low + 1) {
+                        // we can allocate the resource.
+                        int resourceAccessTime = ran.nextInt(endTime - startTime - resources.get(resource_index).c_low) + startTime;
+                        task.accessResourceIndex.add(resource_index);
+                        task.resourceAccessTime.add(resourceAccessTime);
+                        // the time that next resource will use.
+                        startTime = resourceAccessTime + resources.get(resource_index).c_low;
+                        allocateTimes[resource_index] += 1;
+                    }
                 }
             }
 
@@ -518,8 +604,7 @@ public class SimpleSystemGenerator {
         /* Allocate the task to cpu core according to worst-fit-allocation */
         ArrayList<ArrayList<BasicPCB>> generatedTaskSets = WorstFitAllocation(tasks, total_partitions);
 
-        if (generatedTaskSets == null)
-        {
+        if (generatedTaskSets == null) {
             System.err.print("Can't Allocate task to CPU!");
             System.exit(-1);
         }
@@ -556,7 +641,6 @@ public class SimpleSystemGenerator {
         }
 
 
-
         if (resources != null && !resources.isEmpty()) {
             // initialize the resource usage
             for (BasicResource res : resources) {
@@ -571,13 +655,11 @@ public class SimpleSystemGenerator {
                 /* for each partition */
                 resource.isGlobal = true;
 
-                for (ArrayList<BasicPCB> generatedTaskSet : generatedTaskSets)
-                {
+                for (ArrayList<BasicPCB> generatedTaskSet : generatedTaskSets) {
                     int ceiling = 0;
 
                     /* for each task in the given partition */
-                    for (BasicPCB task : generatedTaskSet)
-                    {
+                    for (BasicPCB task : generatedTaskSet) {
                         // set the request task and its cpu core
                         if (task.accessResourceIndex.contains(resource.id)) {
                             ceiling = Math.max(task.basePriority, ceiling);
@@ -592,8 +674,7 @@ public class SimpleSystemGenerator {
                         resource.isGlobal = false;
                 }
             }
-        }
-        else {
+        } else {
             System.err.print("ERROR at resource usage, taskset is NULL!");
             System.exit(-1);
         }
@@ -602,8 +683,7 @@ public class SimpleSystemGenerator {
 
 
     /* 根据传递进来的任务生成每一个任务发布的时间 */
-    public LinkedHashMap<Integer, ArrayList<Integer>> generateTaskReleaseTime(ArrayList<BasicPCB> totalTasks)
-    {
+    public TreeMap<Integer, ArrayList<Integer>> generateTaskReleaseTime(ArrayList<BasicPCB> totalTasks) {
         Random random = new Random();
 
         int longestDeadline = 0;
@@ -611,10 +691,9 @@ public class SimpleSystemGenerator {
 
         ArrayList<Boolean> isReleased = new ArrayList<>(totalTasks.size());
         ArrayList<Integer> timeSinceLastRelease = new ArrayList<>(totalTasks.size());
-        LinkedHashMap<Integer, ArrayList<Integer>> taskReleaseTimes = new LinkedHashMap<>();
+        TreeMap<Integer, ArrayList<Integer>> taskReleaseTimes = new TreeMap<>();
 
-        for (BasicPCB task : totalTasks)
-        {
+        for (BasicPCB task : totalTasks) {
             timeSinceLastRelease.add(task.period);
             isReleased.add(false);
         }
@@ -622,11 +701,9 @@ public class SimpleSystemGenerator {
         do {
             ArrayList<Integer> releaseTasks = new ArrayList<>();
 
-            for (int i = 0; i < totalTasks.size(); ++i)
-            {
+            for (int i = 0; i < totalTasks.size(); ++i) {
                 // Even if the time elapsed since the last release is greater than the period, it still has a probability of being released.
-                if (timeSinceLastRelease.get(i) >= totalTasks.get(i).period && random.nextDouble() < 0.2)
-                {
+                if (timeSinceLastRelease.get(i) >= totalTasks.get(i).period && random.nextDouble() < 0.2) {
                     // timeSinceLastRelease 对应任务项设置为0；重新开始记录时间
                     timeSinceLastRelease.set(i, 0);
 
@@ -636,7 +713,7 @@ public class SimpleSystemGenerator {
 
                     isReleased.set(i, true);
                     releaseTasks.add(i);
-                }else
+                } else
                     timeSinceLastRelease.set(i, timeSinceLastRelease.get(i) + 1);
             }
 
@@ -650,12 +727,12 @@ public class SimpleSystemGenerator {
         return taskReleaseTimes;
     }
 
-    public LinkedHashMap<Integer, ArrayList<Integer>> testGenerateTaskReleaseTime(ArrayList<BasicPCB> totalTasks)
-    {
-        LinkedHashMap<Integer, ArrayList<Integer>> taskReleaseTimes = new LinkedHashMap<>();
-        taskReleaseTimes.put(1, new ArrayList<>(Arrays.asList(0, 1)));
-        taskReleaseTimes.put(3, new ArrayList<>(Collections.singletonList(2)));
-        taskReleaseTimes.put(6, new ArrayList<>(Collections.singletonList(3)));
+    public TreeMap<Integer, ArrayList<Integer>> testGenerateTaskReleaseTime(ArrayList<BasicPCB> totalTasks) {
+        TreeMap<Integer, ArrayList<Integer>> taskReleaseTimes = new TreeMap<>();
+        taskReleaseTimes.put(1, new ArrayList<>(Collections.singletonList(0)));
+        taskReleaseTimes.put(2, new ArrayList<>(Arrays.asList(2, 3, 4)));
+        taskReleaseTimes.put(3, new ArrayList<>(Arrays.asList(1,5)));
         return taskReleaseTimes;
     }
+
 }
