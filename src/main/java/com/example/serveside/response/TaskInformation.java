@@ -139,27 +139,6 @@ public class TaskInformation
             this.resourceAccessTime.add(accessTime + systemClock);
         }
     }
-    public TaskInformation(com.example.serveside.service.dynamic.ProcedureControlBlock procedureControlBlock, Integer systemClock)
-    {
-        this.staticPid = procedureControlBlock.basicPCB.staticTaskId;
-        this.dynamicPid = procedureControlBlock.basicPCB.dynamicTaskId;
-        this.priority = procedureControlBlock.basicPCB.priorities.peek();
-        this.criticality = procedureControlBlock.basicPCB.criticality;
-        this.resourceAccessIndex = procedureControlBlock.basicPCB.accessResourceIndex;
-        this.releaseTime = systemClock;
-        this.WCCTLow = procedureControlBlock.basicPCB.WCCT_low;
-        this.WCCTHigh = procedureControlBlock.basicPCB.WCCT_high;
-        this.utilization = procedureControlBlock.basicPCB.utilization;
-        this.period = procedureControlBlock.basicPCB.period;
-        this.totalTime = procedureControlBlock.basicPCB.totalNeededTime;
-        this.allocation = procedureControlBlock.basicPCB.baseRunningCpuCore;
-
-        this.resourceAccessTime = new ArrayList<>();
-        for (Integer accessTime : procedureControlBlock.basicPCB.resourceAccessTime)
-        {
-            this.resourceAccessTime.add(accessTime + systemClock);
-        }
-    }
 
 
     public TaskInformation(com.example.serveside.service.CommonUse.BasicPCB basicPCB)
