@@ -7,26 +7,89 @@ import com.example.serveside.service.CommonUse.generatorTools.SimpleSystemGenera
 
 import java.util.*;
 
+
+/**
+ * {@code PWLPWorstCase} 用于计算系统任务的发布时间，使得指定任务在PWLP资源共享协议下达到最坏执行情况。
+ * <p>
+ *     {@code PWLPWorstCase} 使用贪心算法来最大化指定任务的调度和阻塞时延。一个任务在运行过程中受到的干扰有三种类型：到达阻塞（arrival-blocking）、高优先级任务的干扰以及访问资源时受到的阻塞。
+ *     {@code PWLPWorstCase} 通过贪心算法分别最大化三种阻塞使得任务的响应时间最大，即任务达到最坏执行情况。
+ * </p>
+ * <p>
+ *     <strong>注意:  为了使下面注释更具清晰度和详细性，记被查看最差运行情况的任务为sufferTask。</strong>
+ * </p>
+ */
 public class PWLPWorstCase {
+    /**
+     * 系统任务信息。
+     */
     public ArrayList<BasicPCB> totalTasks;
 
+    /**
+     * 系统资源信息。
+     */
     public ArrayList<BasicResource> totalResources;
 
+    /**
+     * 将任务按照处理器核心进行分组。
+     */
     public ArrayList<ArrayList<BasicPCB>> allocatedTaskSets;
 
+    /**
+     * 存储资源与相应访问任务的关联关系。
+     * <p>
+     *     这个数据结构是一个三维 ArrayList，其中每个维度的含义如下：
+     *     <ol>
+     *         <li>第一维度：资源索引，表示系统中的不同资源。</li>
+     *         <li>第二维度：处理器核心。</li>
+     *         <li>第三维度：在处理器核心上访问资源的任务。</li>
+     *     </ol>
+     * </p>
+     */
     public ArrayList<ArrayList<ArrayList<BasicPCB>>> accessResourceTasks;
 
+    /**
+     * 记录系统中每个任务的每次发布对sufferTask所在处理器核心执行的任务的阻塞时长。
+     * <p>
+     *     使用任务的静态标识符作为键。<br>
+     *     值是一个整数 ArrayList，表示任务的每次发布对sufferTask所在处理器核心上执行的任务的阻塞时长。
+     * </p>
+     */
     public LinkedHashMap<Integer, ArrayList<Integer>> recordBlockingTimesHashMap;
 
+    /**
+     * 记录系统中每个任务的发布时间。
+     * <p>
+     *     使用任务的静态标识符作为键。<br>
+     *     值是一个整数 ArrayList，表示任务的每次的发布时间。
+     * </p>
+     */
     public LinkedHashMap<Integer, ArrayList<Integer>> recordTaskReleaseTimesHashMap;
 
+    /**
+     * 记录任务（查看其最坏运行情况）从发布开始所受到的阻塞与干扰。
+     */
     public ArrayList<BlockingRecord> BlockingRecordArray;
 
+    /**
+     * 处理器核心个数。
+     */
     public Integer total_partitions;
 
-    /*
-     * 生成 MrsP 协议下某一个任务的最坏运行情况
-     * */
+    /**
+     * 在 MrsP 资源共享协议下，{@code MrsPGeneratedWorstCaseReleaseTime} 使用贪心算法为系统中的任务生成发布时间，使得 sufferTask 达到最差执行情况。
+     * <p>
+     *     {@code MrsPGeneratedWorstCaseReleaseTime} 按以下顺序计算系统中任务的发布时间，使 sufferTask 受到最大化的调度和阻塞时延。
+     *     <ol>
+     *         <li>考虑 sufferTask 在发布时受到到达阻塞，设置提供到达阻塞的低优先级任务等相关任务的发布时间。</li>
+     *         <li>考虑高优先级任务的干扰以及高优先级任务访问资源时受到的阻塞时延，设置高优先级任务的发布时间等相关任务的发布时间。</li>
+     *         <li>考虑高 sufferTask 访问全局资源时受到的阻塞时延，设置其他处理器核心上访问相同资源的任务的发布时间。</li>
+     *     </ol>
+     * </p>
+     * @param totalTasks 系统任务的信息。
+     * @param totalResources 系统资源的信息。
+     * @param sufferTaskId 被查看最差执行情况的任务的静态标识符。
+     * @param total_partitions 处理器核心数。
+     */
     public TreeMap<Integer, ArrayList<Integer>> PWLPGeneratedWorstCaseReleaseTime(ArrayList<BasicPCB> totalTasks, ArrayList<BasicResource> totalResources, Integer sufferTaskId, Integer total_partitions) {
         // 用来记录每一个时间点下有哪些任务会被释放
         TreeMap<Integer, ArrayList<Integer>> recordPoints = new TreeMap<>();
@@ -103,10 +166,11 @@ public class PWLPWorstCase {
         return recordPoints;
     }
 
-    /*
-     * PWLP 协议下某一任务的较差运行情况：考虑 sufferTask 自身开始占据 cpu 运行时访问 global-resource 时也可能会产生 spin-delay
-     * baseReleaseTime : sufferTask 开始使用 cpu 的时间点
-     * */
+    /**
+     * 在 PWLP 协议下，最大化 sufferTask 访问全局资源时最大化自旋等待时间。
+     * @param baseReleaseTime sufferTask 开始使用 cpu 的时间点。
+     * @param sufferTaskId 被查看最差运行情况的任务的静态标识符。
+     */
     public int PWLPConsiderSufferTask(int baseReleaseTime, int sufferTaskId) {
         // 这部分的想法跟 MrsPConsiderHighPriorityTasksInterference 中高优先级任务访问 global-resource 一样，尽量在访问 global-resource 时产生更多的 spin-delay=
         BasicPCB sufferTask = totalTasks.get(sufferTaskId);
@@ -174,20 +238,13 @@ public class PWLPWorstCase {
         return sufferTaskStartTime;
     }
 
-    /* 考虑更高优先级任务对 sufferTask 造成的干扰 */
+    /**
+     * 在 PWLP 协议下考虑高优先级任务给 sufferTask 带来的干扰。
+     * <p>
+     *     调整高优先级任务的发布时间使 sufferTask 受到所有高优先级任务的干扰（即所有高优先级任务在 sufferTask 发布之后，完成执行之前释放）。同时，最大化高优先级任务在访问全局资源时受到的自旋等待时间。
+     * </p>
+     */
     public int PWLPConsiderHighPriorityTasksInterference(int baseReleaseTime, int sufferTaskId) {
-        /*
-         * 现在需要考虑高优先级任务对 sufferTask 的影响
-         * 目前的主要想法还是让 sufferTask 尽可能地吃到 high-priority-task-interference，访问资源时所产生的 spin-delay 只能说是锦上添花
-         * 我们还是按照：高优先级任务按优先级从高到低依次运行来避免下面第二点的情况
-         * 1. （高优先级任务之间的发布顺序确实对 sufferTask 的阻塞市场有一定影响，但是影响不大，这里就不考虑了）
-         * 2. 目前的一个难点是：在设置其他 cpu 上的任务的运行时间时，并没有考虑这些任务之间存在的一些相互作用，可能导致阻塞时长并没有那么大，从而导致 sufferTask 可能提前得到时间运行
-         *   (先不考虑上面那一点，难度很大)
-         * */
-        /*
-         * 高优先级任务的发布时间都放在 maxArrivalBlockingTask 访问完资源之后
-         *
-         * */
 
         // 1. 首先看看前面 sufferTask 有没有被释放过，如果没有被释放过，那么我们就需要在 baseReleaseTime 的时候释放
         if (recordTaskReleaseTimesHashMap.get(sufferTaskId).isEmpty()) {
@@ -292,9 +349,9 @@ public class PWLPWorstCase {
         return baseReleaseTime;
     }
 
-    /*
-     * 在考虑高优先级任务阻塞的情况时，再看看更高优先级的任务再次发布
-     * */
+    /**
+     * 考虑高优先级任务多次释放。
+     */
     public void moreHigherPriorityTaskReleaseAgain(int highPriorityTaskStartTime, BasicPCB lowPriorityTask, BasicPCB sufferTask) {
         int moreHigherPriorityTaskStartTime = highPriorityTaskStartTime;
         int moreHigherPriorityTaskEndTime = highPriorityTaskStartTime;
@@ -378,12 +435,26 @@ public class PWLPWorstCase {
         }
     }
 
-    /*
-     * PWLP 协议下 accessGlobalResourceTask 访问 accessResource 时可能产生的 spin-delay
-     * 使用场景：
-     *       high-priority-task 访问 accessResource 时
-     *       suffer-task 访问 accessResource 时
-     * */
+    /**
+     * 在 PWLP 协议下，{@code PWLPConsiderAccessGlobalResourceSpinDelay} 用于最大化高优先级任务或 {@code sufferTask} 访问某一全局资源时受到的自旋等待时间。
+     * <p>
+     *     该方法用于处理 {@code accessGlobalResourceTask} 访问 {@code accessGlobalResource} 的情况，其中：
+     *     - {@code baseReleaseTime} 表示访问资源的时间点。
+     *     - {@code accessGlobalResourceTaskId} 是访问任务的静态标识符。W
+     * </p>
+     * <p>
+     *     在方法内部执行以下步骤：
+     *     1. 找出其他处理器上在 {@code baseReleaseTime} 可以访问 {@code accessGlobalResource} 的任务，放入 {@code suitableTasks} 列表。
+     *     2. 向 {@code @BlockingRecordArray} 中添加新的 {@code BlockingRecord}。
+     *     3. 设置 {@code suitableTasks} 中任务的发布时间。
+     * </p>
+     * @param baseReleaseTime 访问资源的时间点。
+     * @param accessGlobalResourceTaskId 访问任务的静态标识符。
+     * @param accessResourceIndex 访问的第 {@code accessResourceIndex} 个资源。
+     * @param sufferTaskId 被查看最差执行情况的任务的静态标识符。
+     * @param blockingTypes 表示 {@code BlockingRecord} 的类型。
+     * @param isFirstBlockingRecord 标识是否是第一个由 {@code accessGlobalResourceTask} 引起的 {@code BlockingRecord}。
+     */
     public BlockingRecord PWLPConsiderAccessGlobalResourceSpinDelay(int baseReleaseTime, int accessGlobalResourceTaskId, int accessResourceIndex, int sufferTaskId,
                                                                     BlockingRecord.BlockingTypes blockingTypes,
                                                                     boolean isFirstBlockingRecord) {
@@ -500,9 +571,9 @@ public class PWLPWorstCase {
         return BlockingRecordArray.get(BlockingRecordArray.size() - 1);
     }
 
-    /*
-     * 将 immigrateTask 的第 coverReleaseIndex 次发布去除，并重新计算每一个 BlockingRecord 的开始和结束时间
-     * */
+    /**
+     * {@code PWLPAdjustBaseReleaseTimeAndCurrentTaskTotalSpinDelay} 用于去除 {@code immigrateTask} 的第 {@code coverReleaseIndex} 次发布，并重新计算 {@code BlockingRecordArray} 中每个 {@code BlockingRecord} 的起止时间。
+     */
     public BlockingRecord PWLPAdjustBaseReleaseTimeAndCurrentTaskTotalSpinDelay(int immigrateTaskId, int coverReleaseIndex, int sufferTaskId) {
         // 开始设置阻塞任务的发布时间（设置为）
         int baseReleaseTime = 1;
@@ -663,9 +734,15 @@ public class PWLPWorstCase {
         return BlockingRecordArray.get(BlockingRecordArray.size()-1);
     }
 
-    /*
-     * 调整 access-global-resource 类型的 BlockingRecord
-     * */
+    /**
+     * {@code AdjustAccessGlobalResourceBlockingRecord}调整 access-global-resource 类型的 BlockingRecord 中相关任务的发布时间和阻塞时长。
+     * <p>
+     *     {@code blockingRecord} 中用于增加任务访问全局资源时遭受的自旋等待时间的任务数量发生变动，对{@code blockingRecord.blockingTask}的阻塞时长发生变化，修改相关任务的发布事件以及{@code BlockingRecord} 的相关属性。
+     * </p>
+     * @param blockingRecord 需要调整的阻塞类型。
+     * @param accessGlobalResource 访问的资源。
+     * @param startTime 任务访问 accessGlobalResource 的时间。
+     */
     public void AdjustAccessGlobalResourceBlockingRecord(BlockingRecord blockingRecord, BasicResource accessGlobalResource, int startTime) {
         ArrayList<BasicPCB> suitableTasks = blockingRecord.blockingResourceTasks;
         ArrayList<Integer> suitableTasksReleaseIndex = blockingRecord.blockingResourceTasksReleaseIndex;
@@ -725,9 +802,9 @@ public class PWLPWorstCase {
         blockingRecord.endTime = endTime;
     }
 
-    /*
-     * 合并两个 blockingRecord
-     * */
+    /**
+     * 尝试合并两个 blockingRecord
+     */
     public void mergeLastTwoBlockingRecord() {
         if (BlockingRecordArray.size() < 2)
             return;
@@ -752,14 +829,14 @@ public class PWLPWorstCase {
         }
     }
 
-    /* 考虑低优先级任务对高优先级任务造成的 arrival-blocking */
-    /*
-     * 能够造成 arrival-blocking 的 task
-     *   1. 访问全局资源（任务必须持有资源，自旋等待过程会被抢占）
-     *   2. 访问局部资源 && 访问的资源所对应的天花板更高 --> 优先级反转
-     *
-     * --> arrival-blocking 的最大值 = 上述造成优先级反转的任务以及使用资源中资源使用时长最长的
-     * */
+    /**
+     * 在 PWLP 协议下考虑低优先级任务给 sufferTask 带来的 Arrival-Blocking。
+     * <p>
+     *     在 PWLP 协议下，低优先级任务持有局部资源、自旋等待或持有全局资源均可以造成 sufferTask 遭受到达阻塞。
+     *     但由于PWLP协议下，任务自旋等待或持有局部资源时是可以被抢占的，所以只能是引起优先级反转的资源才可以。
+     *     从上述两种情况中找到提供最长到达阻塞时长的任务并设计其发布时间。
+     * </p>
+     */
     public int PWLPConsiderArrivalBlocking(int sufferTaskId) {
         // 1. 先处理低优先级任务的 Blocking
         BasicPCB sufferTask = totalTasks.get(sufferTaskId);
@@ -851,9 +928,16 @@ public class PWLPWorstCase {
         return baseReleaseTime;
     }
 
-    /*
-     * PWLP 协议下调整根据传递进来的 startTime 调整 arrival-blocking-global-resource
-     * */
+    /**
+     * {@code AdjustArrivalGlobalResourceBlockingRecord}调整 arrival-global-resource-blocking 类型的 BlockingRecord 中相关任务的发布时间和阻塞时长。
+     * <p>
+     *     {@code blockingRecord} 中用于延长低优先级任务访问全局资源的自旋等待时间的任务数量发生变动，{@code blockingRecord}的阻塞时长发生变化，修改相关任务的发布事件以及{@code BlockingRecord} 的相关属性。
+     * </p>
+     * @param blockingRecord 需要调整的阻塞类型。
+     * @param accessGlobalResource 访问的资源。
+     * @param startTime 低优先级任务访问 accessGlobalResource 的时间。
+     * @param sufferTaskId 被查看最差执行情况的任务的静态标识符。
+     */
     public void AdjustArrivalGlobalResourceBlockingRecord(BlockingRecord blockingRecord, BasicResource accessGlobalResource, int startTime, int sufferTaskId) {
         ArrayList<BasicPCB> suitableTasks = blockingRecord.blockingResourceTasks;
         ArrayList<Integer> suitableTasksReleaseIndex = blockingRecord.blockingResourceTasksReleaseIndex;

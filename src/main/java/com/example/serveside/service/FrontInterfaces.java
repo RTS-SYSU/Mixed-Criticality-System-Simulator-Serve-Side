@@ -74,38 +74,6 @@ public class FrontInterfaces
         systemGenerator.generateResourceUsage(totalTasks, totalResources);
         taskReleaseTimes = systemGenerator.generateTaskReleaseTime(totalTasks);
 
-//        totalTasks = systemGenerator.testGenerateTask();
-//        // 按照 Task Id 从小到大进行排序
-//        totalTasks.sort((t1, t2) -> Integer.compare(t1.staticTaskId, t2.staticTaskId));
-//        totalResources = systemGenerator.testGenerateResources();
-//        systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
-//        taskReleaseTimes = systemGenerator.testGenerateTaskReleaseTime(totalTasks);
-
-//        // 这里的话先输出一下任务的基本信息
-//        for (BasicPCB task : totalTasks)
-//        {
-//            System.out.printf("\t\t\tTask %d\n", task.staticTaskId);
-//            System.out.printf("\t\t\t\tPriority: %d, Criticality: %d\n", task.priorities.peek(), task.criticality);
-//            System.out.printf("\t\t\t\tWCCT_low: %d, WCCT_high: %d\n", task.WCCT_low, task.WCCT_high);
-//            System.out.printf("\t\t\t\tUtilization: %.2f, Period: %d, CPU time: %d\n", task.utilization, task.period, task.totalNeededTime);
-//            System.out.printf("\t\t\t\tAllocation: %d\n", task.baseRunningCpuCore);
-//            for (int j = 0; j < task.accessResourceIndex.size(); ++j)
-//            {
-//                System.out.printf("\t\t\t\tAccess Resource Id: %d, Access Time: %d\n", task.accessResourceIndex.get(j), task.resourceAccessTime.get(j));
-//            }
-//        }
-//
-//        // Print the information about the resource.
-//        for (BasicResource resource : totalResources) {
-//            System.out.printf("Resource Id:%d\n", resource.id);
-//            System.out.printf("\t\t\tc_low: %d, c_high: %d\n", resource.c_low, resource.c_high);
-//            System.out.print("\t\t\tResource Ceiling\n");
-//            for (int j = 0; j < resource.ceiling.size(); ++j) {
-//                System.out.printf("\t\t\t\tCPU %d: %d\n", j, resource.ceiling.get(j));
-//            }
-//        }
-
-
         // 初始化 MSRP 协议的配置
         MSRPMixedCriticalSystem.MSRPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
         // 初始化 MrsP 协议的配置

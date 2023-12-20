@@ -77,9 +77,6 @@ public class MrsPWorstCase {
 
 
     /**
-     * 在 MrsP 协议下，根据传递进来的 startTime 调整造成 arrival-global-resource-blocking 任务的发布时间以及阻塞时间。
-     */
-    /**
      * {@code AdjustArrivalGlobalResourceBlockingRecord}调整 arrival-global-resource-blocking 类型的 BlockingRecord 中相关任务的发布时间和阻塞时长。
      * <p>
      *     {@code blockingRecord} 中用于延长低优先级任务访问全局资源的自旋等待时间的任务数量发生变动，{@code blockingRecord}的阻塞时长发生变化，修改相关任务的发布事件以及{@code BlockingRecord} 的相关属性。
@@ -88,7 +85,7 @@ public class MrsPWorstCase {
      * @param accessGlobalResource 访问的资源。
      * @param startTime 低优先级任务访问 accessGlobalResource 的时间。
      * @param sufferTaskId 被查看最差执行情况的任务的静态标识符。
-     * */
+     */
     public void AdjustArrivalGlobalResourceBlockingRecord(BlockingRecord blockingRecord, BasicResource accessGlobalResource, int startTime, int sufferTaskId) {
         ArrayList<BasicPCB> suitableTasks = blockingRecord.blockingResourceTasks;
         ArrayList<Integer> suitableTasksReleaseIndex = blockingRecord.blockingResourceTasksReleaseIndex;
@@ -183,7 +180,7 @@ public class MrsPWorstCase {
      * @param blockingRecord 需要调整的阻塞类型。
      * @param accessGlobalResource 访问的资源。
      * @param startTime 任务访问 accessGlobalResource 的时间。
-    * */
+     */
     public void AdjustAccessGlobalResourceBlockingRecord(BlockingRecord blockingRecord, BasicResource accessGlobalResource, int startTime) {
         ArrayList<BasicPCB> suitableTasks = blockingRecord.blockingResourceTasks;
         ArrayList<Integer> suitableTasksReleaseIndex = blockingRecord.blockingResourceTasksReleaseIndex;
@@ -247,6 +244,7 @@ public class MrsPWorstCase {
      * 在 MrsP 协议下考虑低优先级任务给 sufferTask 带来的 Arrival-Blocking。
      * <p>
      *     在 MrsP 协议下，低优先级任务持有局部资源、自旋等待或持有全局资源均可以造成 sufferTask 遭受到达阻塞。
+     *     但由于MrsP协议下，任务自旋等待或持有资源时是可以被抢占的，所以只能是引起优先级反转的资源才可以。
      *     从上述两种情况中找到提供最长到达阻塞时长的任务并设计其发布时间。
      * </p>
      */
