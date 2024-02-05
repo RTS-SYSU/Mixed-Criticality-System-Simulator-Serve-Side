@@ -1,7 +1,7 @@
 package com.example.serveside.response;
 
 /**
- * {@code EventInformation} 用于记录任务在执行过程中发生的事件（任务释放、请求资源、释放资源等）。
+ * {@code EventTimePoint} 用于记录任务在执行过程中发生的事件（任务释放、请求资源、释放资源等）。
  */
 public class EventTimePoint {
     /**
