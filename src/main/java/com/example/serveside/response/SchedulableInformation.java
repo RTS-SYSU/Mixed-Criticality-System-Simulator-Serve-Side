@@ -3,7 +3,7 @@ package com.example.serveside.response;
 import com.example.serveside.service.CommonUse.BasicPCB;
 
 import java.util.*;
-
+import com.example.serveside.service.CommonUse.BasicResource;
 
 /**
  * {@code ResourceInformation} 是后端向前端传递信息的载体，用于后端向前端传递在一次模拟运行中不同资源共享协议的可调度性、系统生成的任务和资源信息。
@@ -45,7 +45,7 @@ public class SchedulableInformation
      */
     private List<GanttInformation> cpuGanttInformations;
 
-    public SchedulableInformation(Boolean _MSRPSchedulable, Boolean _MrsPSchedulable, Boolean _PWLPSchedulable, ArrayList<BasicPCB> _taskInformations, ArrayList<ResourceInformation> _resourceInformations, List<TaskGanttInformation> _taskGanttInformations, List<GanttInformation> _cpuGanttInformations)
+    public SchedulableInformation(Boolean _MSRPSchedulable, Boolean _MrsPSchedulable, Boolean _PWLPSchedulable, ArrayList<BasicPCB> _taskInformations, HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray, ArrayList<BasicResource> totalResources, ArrayList<ResourceInformation> _resourceInformations, List<TaskGanttInformation> _taskGanttInformations, List<GanttInformation> _cpuGanttInformations)
     {
         this.msrpSchedulable = _MSRPSchedulable;
         this.mrspSchedulable = _MrsPSchedulable;
@@ -56,7 +56,7 @@ public class SchedulableInformation
 
         this.taskInformations = new ArrayList<>();
         for (BasicPCB taskInformation : _taskInformations) {
-            this.taskInformations.add(new TaskInformation(taskInformation));
+            this.taskInformations.add(new TaskInformation(taskInformation, resourceRequiredPrioritiesArray.get(taskInformation.staticTaskId), totalResources));
         }
     }
 

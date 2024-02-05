@@ -143,6 +143,44 @@ public class EventInformation {
             state = _state;
     }
 
+    /**
+     * 构造函数，记录在动态资源共享协议下任务从指定时间开始所处的状态。
+     *
+     * @param task 记录任务状态的任务。
+     * @param _startTime 状态开始的时间点。
+     * @param _state 任务所处的状态
+     */
+    public EventInformation(com.example.serveside.service.dynamic.ProcedureControlBlock task, Integer _startTime, String _state)
+    {
+        // 任务为空，此时 cpu 空闲
+        if (task == null)
+        {
+            staticPid = -1;
+            dynamicPid = -1;
+            startTime = _startTime;
+            endTime = -1;
+            state = "spare";
+            return ;
+        }
+
+        staticPid = task.basicPCB.staticTaskId;;
+        dynamicPid = task.basicPCB.dynamicTaskId;
+        startTime = _startTime;
+        endTime = -1;
+
+        if (_state.isEmpty())
+        {
+            // 设置状态
+            if (task.basicPCB.spin)
+                state = "direct-spinning";
+            else if (task.basicPCB.isAccessGlobalResource || task.basicPCB.isAccessLocalResource)
+                state = "access-resource";
+            else
+                state = "normal-execution";
+        }else
+            state = _state;
+    }
+
     /* 以下均是上面属性的 setter 和 getter 函数。 */
     public Integer getStaticPid() {
         return this.staticPid;

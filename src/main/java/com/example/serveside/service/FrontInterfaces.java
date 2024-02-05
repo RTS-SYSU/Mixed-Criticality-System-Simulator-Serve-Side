@@ -7,6 +7,7 @@ import com.example.serveside.response.WorstCaseInformation;
 import com.example.serveside.service.mrsp.MrsPWorstCase;
 import com.example.serveside.service.msrp.MSRPWorstCase;
 import com.example.serveside.service.pwlp.PWLPWorstCase;
+import com.example.serveside.service.dynamic.DynamicWorstCase;
 import com.example.serveside.service.CommonUse.generatorTools.SimpleSystemGenerator;
 import com.example.serveside.service.CommonUse.BasicPCB;
 import com.example.serveside.service.CommonUse.BasicResource;
@@ -16,6 +17,7 @@ import com.example.serveside.request.ConfigurationInformation;
 import com.example.serveside.service.mrsp.MrsPMixedCriticalSystem;
 import com.example.serveside.service.msrp.MSRPMixedCriticalSystem;
 import com.example.serveside.service.pwlp.PWLPMixedCriticalSystem;
+import com.example.serveside.service.dynamic.DynamicMixedCriticalSystem;
 
 /**
  * {@code FrontInterfaces} 主要起以下作用
@@ -45,8 +47,8 @@ public class FrontInterfaces
     public static TreeMap<Integer, ArrayList<Integer>> taskReleaseTimes;
 
     /**
-    * MrsP 协议下某一任务的较差运行情况下的任务的时间点发布
-    * */
+     * MrsP 协议下某一任务的较差运行情况下的任务的时间点发布
+     * */
     public static TreeMap<Integer, ArrayList<Integer>> MrsPTaskReleaseTimes;
 
     /**
@@ -57,6 +59,16 @@ public class FrontInterfaces
      * PWLP 协议下某一个任务的较差运行情况下的任务的时间点发布
      * */
     public static TreeMap<Integer, ArrayList<Integer>> PWLPTaskReleaseTimes;
+
+    /**
+     * 动态资源共享协议下某一个任务的最坏运行情况的任务的时间点发布
+     */
+    public static TreeMap<Integer, ArrayList<Integer>> DynamicTaskReleaseTimes;
+
+    /**
+     * 在动态资源共享协议下，任务访问局部资源时短暂提升的优先级 / 任务自旋等待全局资源时优先级短暂提升（任务持有全局资源时也提升到对应的优先级）
+     */
+    public static HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray;
 
     /**
      * {@code SchedulableResult}使用前端传递的系统环境配置参数随机生成一组任务、资源、任务发布时间等信息，并模拟任务在不同资源共享协议下的执行情况，并将执行结果返回。
@@ -71,8 +83,34 @@ public class FrontInterfaces
         // 按照 Task Id 从小到大进行排序
         totalTasks.sort((t1, t2) -> Integer.compare(t1.staticTaskId, t2.staticTaskId));
         totalResources = systemGenerator.generateResources();
-        systemGenerator.generateResourceUsage(totalTasks, totalResources);
+        resourceRequiredPrioritiesArray = systemGenerator.generateResourceUsage(totalTasks, totalResources);
         taskReleaseTimes = systemGenerator.generateTaskReleaseTime(totalTasks);
+
+
+        // 这里的话先输出一下任务的基本信息
+        for (BasicPCB task : totalTasks)
+        {
+            System.out.printf("\t\t\tTask %d\n", task.staticTaskId);
+            System.out.printf("\t\t\t\tPriority: %d, Criticality: %d\n", task.priorities.peek(), task.criticality);
+            System.out.printf("\t\t\t\tWCCT_low: %d, WCCT_high: %d\n", task.WCCT_low, task.WCCT_high);
+            System.out.printf("\t\t\t\tUtilization: %.2f, Period: %d, CPU time: %d\n", task.utilization, task.period, task.totalNeededTime);
+            System.out.printf("\t\t\t\tAllocation: %d\n", task.baseRunningCpuCore);
+            for (int j = 0; j < task.accessResourceIndex.size(); ++j)
+            {
+                System.out.printf("\t\t\t\tAccess Resource Id: %d, Access Time: %d\n", task.accessResourceIndex.get(j), task.resourceAccessTime.get(j));
+            }
+        }
+
+        // Print the information about the resource.
+        for (BasicResource resource : totalResources) {
+            System.out.printf("Resource Id:%d\n", resource.id);
+            System.out.printf("\t\t\tc_low: %d, c_high: %d\n", resource.c_low, resource.c_high);
+            System.out.print("\t\t\tResource Ceiling\n");
+            for (int j = 0; j < resource.ceiling.size(); ++j) {
+                System.out.printf("\t\t\t\tCPU %d: %d\n", j, resource.ceiling.get(j));
+            }
+        }
+
 
         // 初始化 MSRP 协议的配置
         MSRPMixedCriticalSystem.MSRPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
@@ -80,6 +118,8 @@ public class FrontInterfaces
         MrsPMixedCriticalSystem.MrsPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
         // 初始化 PWLP 协议的设置
         PWLPMixedCriticalSystem.PWLPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
+        // 初始化动态资源共享协议的设置
+        DynamicMixedCriticalSystem.DynamicInitialize(totalTasks, resourceRequiredPrioritiesArray, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
 
         // 运行 MSRP 协议
         MSRPMixedCriticalSystem.SystemExecute();
@@ -87,6 +127,8 @@ public class FrontInterfaces
         MrsPMixedCriticalSystem.SystemExecute();
         // 运行 PWLP
         PWLPMixedCriticalSystem.SystemExecute();
+        // 运行动态资源共享协议
+        DynamicMixedCriticalSystem.SystemExecute();
 
         // task gantt chart information: 任务甘特图信息：
         List<TaskGanttInformation> taskGanttInformations = new ArrayList<>();
@@ -134,7 +176,7 @@ public class FrontInterfaces
         return new SchedulableInformation(MSRPMixedCriticalSystem.isSchedulable,
                 MrsPMixedCriticalSystem.isSchedulable,
                 PWLPMixedCriticalSystem.isSchedulable,
-                totalTasks, resourceInformations,
+                totalTasks, resourceRequiredPrioritiesArray, totalResources, resourceInformations,
                 taskGanttInformations, cpuGanttInformations);
     }
 
@@ -191,5 +233,23 @@ public class FrontInterfaces
         PWLPMixedCriticalSystem.SystemExecute();
         // 返回调度信息
         return new WorstCaseInformation(PWLPMixedCriticalSystem.isSchedulable, PWLPMixedCriticalSystem.PackageTotalInformation());
+    }
+
+    /**
+     * {@code DynamicWorstCaseExecution} 生成指定任务{@code sufferTaskId} 在动态资源共享协议下的最差运行情况。
+     *
+     * @param sufferTaskId 指定任务的静态标识符
+     * @param isStartUpSwitch 是否开启关键级切换
+     * @param criticalitySwitchTime 关键级切换发生的时间点
+     * */
+    public static WorstCaseInformation DynamicWorstCaseExecution(Integer sufferTaskId, Boolean isStartUpSwitch, Integer criticalitySwitchTime) {
+        // 先调用 SimpleSystemGenerator 生成：在 staticTaskId 最坏情况下所有任务的发布时间
+        DynamicTaskReleaseTimes = new DynamicWorstCase().DynamicGeneratedWorstCaseReleaseTime(totalTasks, resourceRequiredPrioritiesArray, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
+        // 初始化一下协议的运行配置
+        DynamicMixedCriticalSystem.DynamicInitialize(totalTasks, resourceRequiredPrioritiesArray, totalResources, SimpleSystemGenerator.total_partitions, DynamicTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
+        // 运行协议
+        DynamicMixedCriticalSystem.SystemExecute();
+        // 返回调度信息
+        return new WorstCaseInformation(DynamicMixedCriticalSystem.isSchedulable, DynamicMixedCriticalSystem.PackageTotalInformation());
     }
 }

@@ -1,5 +1,7 @@
 package com.example.serveside.response;
 
+import com.example.serveside.service.CommonUse.BasicResource;
+
 import java.util.ArrayList;
 
 /**
@@ -73,6 +75,11 @@ public class TaskInformation
      */
     private ArrayList<Integer> resourceAccessIndex;
 
+    /**
+     * 任务在动态资源共享协议中自旋等待全局资源时提升的优先级
+     */
+    private ArrayList<Integer> resourceRequiredPriorities;
+
 
     public TaskInformation(com.example.serveside.service.msrp.ProcedureControlBlock procedureControlBlock, Integer systemClock)
     {
@@ -138,6 +145,50 @@ public class TaskInformation
         {
             this.resourceAccessTime.add(accessTime + systemClock);
         }
+    }
+
+    public TaskInformation(com.example.serveside.service.dynamic.ProcedureControlBlock procedureControlBlock, Integer systemClock)
+    {
+        this.staticPid = procedureControlBlock.basicPCB.staticTaskId;
+        this.dynamicPid = procedureControlBlock.basicPCB.dynamicTaskId;
+        this.priority = procedureControlBlock.basicPCB.priorities.peek();
+        this.criticality = procedureControlBlock.basicPCB.criticality;
+        this.resourceAccessIndex = procedureControlBlock.basicPCB.accessResourceIndex;
+        this.releaseTime = systemClock;
+        this.WCCTLow = procedureControlBlock.basicPCB.WCCT_low;
+        this.WCCTHigh = procedureControlBlock.basicPCB.WCCT_high;
+        this.utilization = procedureControlBlock.basicPCB.utilization;
+        this.period = procedureControlBlock.basicPCB.period;
+        this.totalTime = procedureControlBlock.basicPCB.totalNeededTime;
+        this.allocation = procedureControlBlock.basicPCB.baseRunningCpuCore;
+
+        this.resourceAccessTime = new ArrayList<>();
+        for (Integer accessTime : procedureControlBlock.basicPCB.resourceAccessTime)
+        {
+            this.resourceAccessTime.add(accessTime + systemClock);
+        }
+    }
+
+    public TaskInformation(com.example.serveside.service.CommonUse.BasicPCB basicPCB, ArrayList<Integer> resourceRequiredPriorities, ArrayList<BasicResource> totalResources)
+    {
+        this.staticPid = basicPCB.staticTaskId;
+        this.dynamicPid = basicPCB.dynamicTaskId;
+        this.priority = basicPCB.priorities.peek();
+        this.criticality = basicPCB.criticality;
+        this.resourceAccessIndex = basicPCB.accessResourceIndex;
+        this.releaseTime = 1;
+        this.WCCTLow = basicPCB.WCCT_low;
+        this.WCCTHigh = basicPCB.WCCT_high;
+        this.utilization = basicPCB.utilization;
+        this.period = basicPCB.period;
+        this.totalTime = basicPCB.totalNeededTime;
+        this.allocation = basicPCB.baseRunningCpuCore;
+
+        this.resourceAccessTime = new ArrayList<>();
+        this.resourceAccessTime.addAll(basicPCB.resourceAccessTime);
+
+
+        this.resourceRequiredPriorities = resourceRequiredPriorities;
     }
 
 

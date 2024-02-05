@@ -391,7 +391,8 @@ public class SimpleSystemGenerator {
      * @param tasks 系统中的任务。
      * @param resources 系统中的资源。
      */
-    public void generateResourceUsage(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources) {
+    // resources: the resources with theirs corresponding critical section length
+    public HashMap<Integer, ArrayList<Integer>> generateResourceUsage(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources) {
         while (tasks == null)
             tasks = generateTasks();
 
@@ -530,6 +531,27 @@ public class SimpleSystemGenerator {
             System.exit(-1);
         }
 
+        return generateResourceRequiredPriorities(tasks, resources);
+    }
+
+    /**
+     * 用于动态资源共享协议：随机生成每个任务自旋等待全局资源时的优先级提升
+     */
+    public HashMap<Integer, ArrayList<Integer>> generateResourceRequiredPriorities(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources) {
+        HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray = new HashMap<>();
+        int maxPriority = MIN_PRIORITY + tasks.size();
+        for (BasicPCB tmpTask : tasks) {
+            ArrayList<Integer> resourceRequiredPriorities = new ArrayList<>();
+            for (Integer resourceRequiredIndex : tmpTask.accessResourceIndex) {
+                if (resources.get(resourceRequiredIndex).isGlobal) {
+                    resourceRequiredPriorities.add(tmpTask.basePriority + (int)(Math.random() * (maxPriority - tmpTask.basePriority)));
+                }else {
+                    resourceRequiredPriorities.add(-1);
+                }
+            }
+            resourceRequiredPrioritiesArray.put(tmpTask.staticTaskId, resourceRequiredPriorities);
+        }
+        return resourceRequiredPrioritiesArray;
     }
 
 

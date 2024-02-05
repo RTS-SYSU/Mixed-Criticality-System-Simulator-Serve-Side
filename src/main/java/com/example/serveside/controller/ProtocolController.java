@@ -8,6 +8,7 @@ import com.example.serveside.service.CommonUse.generatorTools.SimpleSystemGenera
 import com.example.serveside.service.mrsp.MrsPMixedCriticalSystem;
 import com.example.serveside.service.msrp.MSRPMixedCriticalSystem;
 import com.example.serveside.service.pwlp.PWLPMixedCriticalSystem;
+import com.example.serveside.service.dynamic.DynamicMixedCriticalSystem;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import com.example.serveside.response.SchedulableInformation;
@@ -30,7 +31,7 @@ public class ProtocolController {
     {
         // 初始化 MSRP 协议的配置
         MSRPMixedCriticalSystem.MSRPInitialize(com.example.serveside.service.FrontInterfaces.totalTasks, com.example.serveside.service.FrontInterfaces.totalResources, SimpleSystemGenerator.total_partitions, com.example.serveside.service.FrontInterfaces.taskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
-        // MSRP 协议进行运行
+        // MSRP 协议运行
         MSRPMixedCriticalSystem.SystemExecute();
         return MSRPMixedCriticalSystem.PackageTotalInformation();
     }
@@ -46,7 +47,7 @@ public class ProtocolController {
     {
         // 初始化 MrsP 协议的配置
         MrsPMixedCriticalSystem.MrsPInitialize(com.example.serveside.service.FrontInterfaces.totalTasks, com.example.serveside.service.FrontInterfaces.totalResources, SimpleSystemGenerator.total_partitions, com.example.serveside.service.FrontInterfaces.taskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
-        // MrsP 协议进行运行
+        // MrsP 协议运行
         MrsPMixedCriticalSystem.SystemExecute();
 
         return MrsPMixedCriticalSystem.PackageTotalInformation();
@@ -63,10 +64,27 @@ public class ProtocolController {
     {
         // 初始化 PWLP 协议的配置
         PWLPMixedCriticalSystem.PWLPInitialize(com.example.serveside.service.FrontInterfaces.totalTasks, com.example.serveside.service.FrontInterfaces.totalResources, SimpleSystemGenerator.total_partitions, com.example.serveside.service.FrontInterfaces.taskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
-        // PWLP 协议进行运行
+        // PWLP 协议运行
         PWLPMixedCriticalSystem.SystemExecute();
 
         return PWLPMixedCriticalSystem.PackageTotalInformation();
+    }
+
+    /**
+     * {@code Dynamic} 接受前端传递的关键级切换配置参数，模拟任务在动态资源共享协议下的执行，并将任务的执行情况打包成 JSON 格式传递给前端。
+     * @param isStartUpSwitch 是否开启关键级切换
+     * @param criticalitySwitchTime 关键级切换发生的时间点
+     * */
+    @ResponseBody
+    @PostMapping(value = "/dynamic")
+    public ToTalInformation Dynamic(@RequestParam(value = "isStartUpSwitch") Boolean isStartUpSwitch, @RequestParam(value = "criticalitySwitchTime") Integer criticalitySwitchTime)
+    {
+        // 初始化 PWLP 协议的配置
+        DynamicMixedCriticalSystem.DynamicInitialize(com.example.serveside.service.FrontInterfaces.totalTasks, com.example.serveside.service.FrontInterfaces.resourceRequiredPrioritiesArray, com.example.serveside.service.FrontInterfaces.totalResources, SimpleSystemGenerator.total_partitions, com.example.serveside.service.FrontInterfaces.taskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
+        // 动态资源共享协议运行
+        DynamicMixedCriticalSystem.SystemExecute();
+
+        return DynamicMixedCriticalSystem.PackageTotalInformation();
     }
 
     /**
@@ -129,6 +147,22 @@ public class ProtocolController {
     public WorstCaseInformation PWLPWorstCaseExecution(@RequestParam(value = "staticPid") Integer staticPid, @RequestParam(value = "isStartUpSwitch") Boolean isStartUpSwitch, @RequestParam(value = "criticalitySwitchTime") Integer criticalitySwitchTime)
     {
         return com.example.serveside.service.FrontInterfaces.PWLPWorstCaseExecution(staticPid, isStartUpSwitch, criticalitySwitchTime);
+    }
+
+    /**
+     * {@code DynamicWorstCaseExecution} 接收前端传递的参数（被查看最坏运行情况的任务的静态标识符、关键级切换配置参数），使用贪心算法计算出系统中各个任务的发布时间，模拟指定任务在PWLP资源共享协议下的运行，以获取其最坏运行情况。
+     * 最后以JSON格式将指定任务在PWLP协议下的最坏运行情况传递至前端。
+     *
+     * @param staticPid 被查看最坏运行情况的任务的静态标识符。
+     * @param isStartUpSwitch 是否开启关键级切换
+     * @param criticalitySwitchTime 关键级切换发生的时间点
+     * @return 指定任务在 MSRP 协议下的最坏运行情况
+     */
+    @ResponseBody
+    @PostMapping(value = "/dynamicWorstCase")
+    public WorstCaseInformation DynamicWorstCaseExecution(@RequestParam(value = "staticPid") Integer staticPid, @RequestParam(value = "isStartUpSwitch") Boolean isStartUpSwitch, @RequestParam(value = "criticalitySwitchTime") Integer criticalitySwitchTime)
+    {
+        return com.example.serveside.service.FrontInterfaces.DynamicWorstCaseExecution(staticPid, isStartUpSwitch, criticalitySwitchTime);
     }
 
 }
