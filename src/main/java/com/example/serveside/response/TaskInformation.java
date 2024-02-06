@@ -188,7 +188,15 @@ public class TaskInformation
         this.resourceAccessTime.addAll(basicPCB.resourceAccessTime);
 
 
-        this.resourceRequiredPriorities = resourceRequiredPriorities;
+        this.resourceRequiredPriorities = new ArrayList<>();
+        for (int i = 0; i < basicPCB.accessResourceIndex.size(); ++i) {
+            int resourceIndex = basicPCB.accessResourceIndex.get(i);
+            if (totalResources.get(resourceIndex).isGlobal) {
+                this.resourceRequiredPriorities.add(resourceRequiredPriorities.get(resourceIndex));
+            }else {
+                this.resourceRequiredPriorities.add(-1);
+            }
+        }
     }
 
 

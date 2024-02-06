@@ -2,6 +2,9 @@ package com.example.serveside.service.CommonUse.generatorTools;
 import com.example.serveside.service.CommonUse.BasicPCB;
 import com.example.serveside.service.CommonUse.BasicResource;
 import com.example.serveside.request.ConfigurationInformation;
+import sysu.rtsg.ExperimentMain;
+import sysu.rtsg.entity.Resource;
+import sysu.rtsg.entity.SporadicTask;
 
 import java.util.*;
 
@@ -531,25 +534,88 @@ public class SimpleSystemGenerator {
             System.exit(-1);
         }
 
-        return generateResourceRequiredPriorities(tasks, resources);
+        return generateResourceRequiredPriorities(tasks, resources, total_partitions);
     }
 
     /**
      * 用于动态资源共享协议：随机生成每个任务自旋等待全局资源时的优先级提升
      */
-    public HashMap<Integer, ArrayList<Integer>> generateResourceRequiredPriorities(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources) {
-        HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray = new HashMap<>();
-        int maxPriority = MIN_PRIORITY + tasks.size();
+    public HashMap<Integer, ArrayList<Integer>> generateResourceRequiredPriorities(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources, int total_partitions) {
+
+        ArrayList<ArrayList<SporadicTask>> tmpTotalTasks = new ArrayList<>();
+        for (int i = 0; i < total_partitions; ++i) {
+            tmpTotalTasks.add(new ArrayList<>());
+        }
         for (BasicPCB tmpTask : tasks) {
-            ArrayList<Integer> resourceRequiredPriorities = new ArrayList<>();
-            for (Integer resourceRequiredIndex : tmpTask.accessResourceIndex) {
-                if (resources.get(resourceRequiredIndex).isGlobal) {
-                    resourceRequiredPriorities.add(tmpTask.basePriority + (int)(Math.random() * (maxPriority - tmpTask.basePriority)));
-                }else {
-                    resourceRequiredPriorities.add(-1);
+            tmpTotalTasks.get(tmpTask.baseRunningCpuCore).add(new SporadicTask(tmpTask, resources));
+        }
+        for (int i = 0; i < tmpTotalTasks.size(); i++) {
+            tmpTotalTasks.get(i).sort((p1, p2) -> Double.compare(p1.period, p2.period));
+        }
+
+
+        ArrayList<Resource> tmpResources = new ArrayList<>();
+        for (BasicResource tmpResource : resources) {
+            tmpResources.add(new Resource(tmpResource));
+        }
+        for (int i = 0; i < tmpResources.size(); ++i) {
+            Resource res = tmpResources.get(i);
+            res.isGlobal = false;
+            res.partitions.clear();
+            res.requested_tasks.clear();
+        }
+
+        for (int i = 0; i < resources.size(); ++i) {
+            Resource resource = tmpResources.get(i);
+
+            /* for each partition */
+            for (int j = 0; j < tmpTotalTasks.size(); j++) {
+
+                /* for each task in the given partition */
+                for (int k = 0; k < tmpTotalTasks.get(j).size(); k++) {
+                    SporadicTask task = tmpTotalTasks.get(j).get(k);
+
+                    if (task.resource_required_index.contains(resource.id)) {
+                        resource.requested_tasks.add(task);
+                        if (!resource.partitions.contains(task.partition)) {
+                            resource.partitions.add(task.partition);
+                        }
+                    }
                 }
             }
-            resourceRequiredPrioritiesArray.put(tmpTask.staticTaskId, resourceRequiredPriorities);
+
+            if (resource.partitions.size() > 1)
+                resource.isGlobal = true;
+        }
+
+        ExperimentMain experimentMain = new ExperimentMain();
+        ExperimentMain.Counter counter = new ExperimentMain.Counter();
+        counter.initResults();
+        experimentMain.RandomMethod(tmpTotalTasks, tmpResources, counter, 1, 500);
+
+        HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray = new HashMap<>();
+        for (int i = 0; i < tmpTotalTasks.size(); ++i) {
+            for (int j = 0; j < tmpTotalTasks.get(i).size(); ++j) {
+                SporadicTask tmpTask = tmpTotalTasks.get(i).get(j);
+                BasicPCB task = tasks.get(tmpTask.id);
+                ArrayList<Integer> resourceRequiredPriorities = new ArrayList<>();
+
+                for (int k = 0; k < task.accessResourceIndex.size(); ++k) {
+                    if (resources.get(task.accessResourceIndex.get(k)).isGlobal) {
+                        int l = 0;
+                        for (; l < tmpTask.resource_required_index.size(); ++l) {
+                            if (tmpTask.resource_required_index.get(l) == task.accessResourceIndex.get(k)) {
+                                break;
+                            }
+                        }
+                        resourceRequiredPriorities.add(tmpTask.resource_required_priority.get(l));
+                    } else {
+                        resourceRequiredPriorities.add(resources.get(task.accessResourceIndex.get(k)).ceiling.get(task.baseRunningCpuCore));
+                    }
+                }
+
+                resourceRequiredPrioritiesArray.put(task.staticTaskId, resourceRequiredPriorities);
+            }
         }
         return resourceRequiredPrioritiesArray;
     }
