@@ -33,7 +33,7 @@ public class Resource {
 	}
 
 	public Resource(BasicResource basicResource) {
-		this.id = basicResource.id;
+		this.id = basicResource.id+1;
 		this.csl = basicResource.c_low;
 		requested_tasks = new ArrayList<>();
 		partitions = new ArrayList<>();

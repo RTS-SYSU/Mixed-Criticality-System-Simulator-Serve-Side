@@ -18,6 +18,8 @@ import com.example.serveside.service.mrsp.MrsPMixedCriticalSystem;
 import com.example.serveside.service.msrp.MSRPMixedCriticalSystem;
 import com.example.serveside.service.pwlp.PWLPMixedCriticalSystem;
 import com.example.serveside.service.dynamic.DynamicMixedCriticalSystem;
+import sysu.rtsg.entity.Resource;
+import sysu.rtsg.entity.SporadicTask;
 
 /**
  * {@code FrontInterfaces} 主要起以下作用
@@ -86,30 +88,65 @@ public class FrontInterfaces
         resourceRequiredPrioritiesArray = systemGenerator.generateResourceUsage(totalTasks, totalResources);
         taskReleaseTimes = systemGenerator.generateTaskReleaseTime(totalTasks);
 
+        System.out.print("Simulation: \n");
+        System.out.println("{");
 
-        // 这里的话先输出一下任务的基本信息
-        for (BasicPCB task : totalTasks)
-        {
-            System.out.printf("\t\t\tTask %d\n", task.staticTaskId);
-            System.out.printf("\t\t\t\tPriority: %d, Criticality: %d\n", task.priorities.peek(), task.criticality);
-            System.out.printf("\t\t\t\tWCCT_low: %d, WCCT_high: %d\n", task.WCCT_low, task.WCCT_high);
-            System.out.printf("\t\t\t\tUtilization: %.2f, Period: %d, CPU time: %d\n", task.utilization, task.period, task.totalNeededTime);
-            System.out.printf("\t\t\t\tAllocation: %d\n", task.baseRunningCpuCore);
-            for (int j = 0; j < task.accessResourceIndex.size(); ++j)
-            {
-                System.out.printf("\t\t\t\tAccess Resource Id: %d, Access Time: %d\n", task.accessResourceIndex.get(j), task.resourceAccessTime.get(j));
+// 假设tmpTotalTasks和tmpResources已经正确初始化
+        System.out.println("  \"tasks\": [");
+        int count = 0;
+        for (int i = 0; i < totalTasks.size(); i++) {
+            BasicPCB task = totalTasks.get(i);
+            System.out.println("    {");
+            System.out.printf("      \"id\": %d,\n", task.staticTaskId);
+            System.out.printf("      \"WCCT_low\": %d,\n", task.WCCT_low);
+            System.out.printf("      \"period\": %d,\n", task.period);
+            System.out.printf("      \"deadline\": %d,\n", task.deadline);
+            System.out.printf("      \"partition\": %d,\n", task.baseRunningCpuCore);
+            System.out.printf("      \"priority\": %d,\n", task.basePriority);
+            System.out.printf("      \"util\": %.2f,\n", task.utilization);
+            System.out.print("      \"resource_required_index\": [");
+            for (int k = 0; k < task.accessResourceIndex.size(); k++) {
+                System.out.print(task.accessResourceIndex.get(k));
+                if (k < task.accessResourceIndex.size() - 1) {
+                    System.out.print(", ");
+                }
+            }
+            System.out.print("],\n      \"access_resource_time\": [");
+            for (int k = 0; k < task.resourceAccessTime.size(); k++) {
+                System.out.print(task.resourceAccessTime.get(k));
+                if (k < task.resourceAccessTime.size() - 1) {
+                    System.out.print(", ");
+                }
+            }
+            System.out.print("]\n");
+            if (count < totalTasks.size() - 1) {
+                System.out.println("    },");
+            } else {
+                System.out.println("    }");
+            }
+            ++count;
+
+        }
+        System.out.println("  ],");
+
+        System.out.println("  \"resources\": [");
+        for (int i = 0; i < totalResources.size(); i++) {
+            BasicResource resource = totalResources.get(i);
+            System.out.println("    {");
+            System.out.printf("      \"id\": %d,\n", resource.id);
+            System.out.printf("      \"csl\": %d,\n", resource.c_low);
+            System.out.printf("      \"isGlobal\": %b,\n", resource.isGlobal);
+            System.out.print("      \"partitions\": [");
+            System.out.print("],\n      \"requested_tasks\": [");
+
+            System.out.print("]\n    }");
+            if (i < totalResources.size() - 1) {
+                System.out.println(", ");
             }
         }
+        System.out.println("\n  ]");
 
-        // Print the information about the resource.
-        for (BasicResource resource : totalResources) {
-            System.out.printf("Resource Id:%d\n", resource.id);
-            System.out.printf("\t\t\tc_low: %d, c_high: %d\n", resource.c_low, resource.c_high);
-            System.out.print("\t\t\tResource Ceiling\n");
-            for (int j = 0; j < resource.ceiling.size(); ++j) {
-                System.out.printf("\t\t\t\tCPU %d: %d\n", j, resource.ceiling.get(j));
-            }
-        }
+        System.out.println("}");
 
 
         // 初始化 MSRP 协议的配置

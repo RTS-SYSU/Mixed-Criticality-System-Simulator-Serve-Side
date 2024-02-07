@@ -241,6 +241,10 @@ public class TaskInformation
         return this.releaseTime;
     }
 
+    public ArrayList<Integer> getResourceRequiredPriorities() {
+        return this.resourceRequiredPriorities;
+    }
+
     public Integer getWCCTLow() { return this.WCCTLow; }
 
     public Integer getWCCTHigh() { return this.WCCTHigh; }
@@ -290,4 +294,6 @@ public class TaskInformation
     public void setTotalTime(Integer _totalTime) { this.totalTime = _totalTime; }
 
     public void setAllocation(Integer _allocation) { this.allocation = _allocation; }
+
+    public void setResourceRequiredPriorities(ArrayList<Integer> _resourceRequiredPriorities) { this.resourceRequiredPriorities = _resourceRequiredPriorities; }
 }

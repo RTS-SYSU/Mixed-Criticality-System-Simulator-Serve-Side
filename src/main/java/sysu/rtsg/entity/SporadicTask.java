@@ -51,7 +51,7 @@ public class SporadicTask {
 		this.WCET = task.WCCT_low;
 		this.deadline = this.period;
 		this.partition = task.baseRunningCpuCore;
-		this.id = task.staticTaskId;
+		this.id = task.staticTaskId+1;
 		this.util = task.utilization;
 
 		this.pure_resource_execution_time = 0;

@@ -138,7 +138,7 @@ public class ResponseTimeAnalysisWithVariousPriorities_S_B_Worst {
         // long implementation_overheads = (long) Math.ceil(task.implementation_overheads);
         long implementation_overheads = 0;
         long newRi = task.Ri = task.WCET + task.spin + task.interference + task.local + implementation_overheads;
-
+        System.out.printf("\n spin: %d\n indirectspin: %d\n, local: %d\n, pure_resource_execution_time: %d \n blocking_overheads: blocking_overheads:%d\n", task.spin, task.indirectspin, task.local, task.pure_resource_execution_time, (long) Math.ceil(task.blocking_overheads));
         task.total_blocking = task.spin + task.indirectspin + task.local - task.pure_resource_execution_time + (long) Math.ceil(task.blocking_overheads);
         if (task.total_blocking < 0) {
             System.err.println("total blocking error: T" + task.id + "   total blocking: " + task.total_blocking);
