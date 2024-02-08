@@ -575,7 +575,7 @@ public class SimpleSystemGenerator {
                 for (int k = 0; k < tmpTotalTasks.get(j).size(); k++) {
                     SporadicTask task = tmpTotalTasks.get(j).get(k);
 
-                    if (task.resource_required_index.contains(resource.id)) {
+                    if (task.resource_required_index.contains(resource.id-1)) {
                         resource.requested_tasks.add(task);
                         if (!resource.partitions.contains(task.partition)) {
                             resource.partitions.add(task.partition);
@@ -588,80 +588,80 @@ public class SimpleSystemGenerator {
                 resource.isGlobal = true;
         }
 
-        System.out.print("RandomMethod: \n");
-        System.out.println("{");
-
-// 假设tmpTotalTasks和tmpResources已经正确初始化
-        System.out.println("  \"tasks\": [");
-        int count = 0;
-        for (int i = 0; i < tmpTotalTasks.size(); i++) {
-            ArrayList<SporadicTask> taskList = tmpTotalTasks.get(i);
-            for (int j = 0; j < taskList.size(); j++) {
-                SporadicTask task = taskList.get(j);
-                System.out.println("    {");
-                System.out.printf("      \"id\": %d,\n", task.id);
-                System.out.printf("      \"WCET\": %d,\n", task.WCET);
-                System.out.printf("      \"period\": %d,\n", task.period);
-                System.out.printf("      \"deadline\": %d,\n", task.deadline);
-                System.out.printf("      \"partition\": %d,\n", task.partition);
-                System.out.printf("      \"priority\": %d,\n", task.priority);
-                System.out.printf("      \"util\": %.2f,\n", task.util);
-                System.out.printf("      \"pure_resource_execution_time\": %d,\n", task.pure_resource_execution_time);
-                System.out.print("      \"resource_required_index\": [");
-                for (int k = 0; k < task.resource_required_index.size(); k++) {
-                    System.out.print(task.resource_required_index.get(k));
-                    if (k < task.resource_required_index.size() - 1) {
-                        System.out.print(", ");
-                    }
-                }
-                System.out.print("],\n      \"number_of_access_in_one_release\": [");
-                for (int k = 0; k < task.number_of_access_in_one_release.size(); k++) {
-                    System.out.print(task.number_of_access_in_one_release.get(k));
-                    if (k < task.number_of_access_in_one_release.size() - 1) {
-                        System.out.print(", ");
-                    }
-                }
-                System.out.print("]\n");
-                if (count < tasks.size() - 1) {
-                    System.out.println("    },");
-                } else {
-                    System.out.println("    }");
-                }
-                ++count;
-            }
-        }
-        System.out.println("  ],");
-
-        System.out.println("  \"resources\": [");
-        for (int i = 0; i < tmpResources.size(); i++) {
-            Resource resource = tmpResources.get(i);
-            System.out.println("    {");
-            System.out.printf("      \"id\": %d,\n", resource.id);
-            System.out.printf("      \"csl\": %d,\n", resource.csl);
-            System.out.printf("      \"protocol\": %d,\n", resource.protocol);
-            System.out.printf("      \"isGlobal\": %b,\n", resource.isGlobal);
-            System.out.print("      \"partitions\": [");
-            for (int j = 0; j < resource.partitions.size(); j++) {
-                System.out.print(resource.partitions.get(j));
-                if (j < resource.partitions.size() - 1) {
-                    System.out.print(", ");
-                }
-            }
-            System.out.print("],\n      \"requested_tasks\": [");
-            for (int j = 0; j < resource.requested_tasks.size(); j++) {
-                System.out.print(resource.requested_tasks.get(j).id);
-                if (j < resource.requested_tasks.size() - 1) {
-                    System.out.print(", ");
-                }
-            }
-            System.out.print("]\n    }");
-            if (i < tmpResources.size() - 1) {
-                System.out.println(", ");
-            }
-        }
-        System.out.println("\n  ]");
-
-        System.out.println("}");
+//        System.out.print("RandomMethod: \n");
+//        System.out.println("{");
+//
+//        // 假设tmpTotalTasks和tmpResources已经正确初始化
+//        System.out.println("  \"tasks\": [");
+//        int count = 0;
+//        for (int i = 0; i < tmpTotalTasks.size(); i++) {
+//            ArrayList<SporadicTask> taskList = tmpTotalTasks.get(i);
+//            for (int j = 0; j < taskList.size(); j++) {
+//                SporadicTask task = taskList.get(j);
+//                System.out.println("    {");
+//                System.out.printf("      \"id\": %d,\n", task.id);
+//                System.out.printf("      \"WCET\": %d,\n", task.WCET);
+//                System.out.printf("      \"period\": %d,\n", task.period);
+//                System.out.printf("      \"deadline\": %d,\n", task.deadline);
+//                System.out.printf("      \"partition\": %d,\n", task.partition);
+//                System.out.printf("      \"priority\": %d,\n", task.priority);
+//                System.out.printf("      \"util\": %.2f,\n", task.util);
+//                System.out.printf("      \"pure_resource_execution_time\": %d,\n", task.pure_resource_execution_time);
+//                System.out.print("      \"resource_required_index\": [");
+//                for (int k = 0; k < task.resource_required_index.size(); k++) {
+//                    System.out.print(task.resource_required_index.get(k));
+//                    if (k < task.resource_required_index.size() - 1) {
+//                        System.out.print(", ");
+//                    }
+//                }
+//                System.out.print("],\n      \"number_of_access_in_one_release\": [");
+//                for (int k = 0; k < task.number_of_access_in_one_release.size(); k++) {
+//                    System.out.print(task.number_of_access_in_one_release.get(k));
+//                    if (k < task.number_of_access_in_one_release.size() - 1) {
+//                        System.out.print(", ");
+//                    }
+//                }
+//                System.out.print("]\n");
+//                if (count < tasks.size() - 1) {
+//                    System.out.println("    },");
+//                } else {
+//                    System.out.println("    }");
+//                }
+//                ++count;
+//            }
+//        }
+//        System.out.println("  ],");
+//
+//        System.out.println("  \"resources\": [");
+//        for (int i = 0; i < tmpResources.size(); i++) {
+//            Resource resource = tmpResources.get(i);
+//            System.out.println("    {");
+//            System.out.printf("      \"id\": %d,\n", resource.id);
+//            System.out.printf("      \"csl\": %d,\n", resource.csl);
+//            System.out.printf("      \"protocol\": %d,\n", resource.protocol);
+//            System.out.printf("      \"isGlobal\": %b,\n", resource.isGlobal);
+//            System.out.print("      \"partitions\": [");
+//            for (int j = 0; j < resource.partitions.size(); j++) {
+//                System.out.print(resource.partitions.get(j));
+//                if (j < resource.partitions.size() - 1) {
+//                    System.out.print(", ");
+//                }
+//            }
+//            System.out.print("],\n      \"requested_tasks\": [");
+//            for (int j = 0; j < resource.requested_tasks.size(); j++) {
+//                System.out.print(resource.requested_tasks.get(j).id);
+//                if (j < resource.requested_tasks.size() - 1) {
+//                    System.out.print(", ");
+//                }
+//            }
+//            System.out.print("]\n    }");
+//            if (i < tmpResources.size() - 1) {
+//                System.out.println(", ");
+//            }
+//        }
+//        System.out.println("\n  ]");
+//
+//        System.out.println("}");
 
 
 

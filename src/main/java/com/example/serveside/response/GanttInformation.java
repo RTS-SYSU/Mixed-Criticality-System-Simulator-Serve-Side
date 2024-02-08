@@ -7,14 +7,14 @@ import java.util.List;
  */
 public class GanttInformation {
     /**
-     * 处理器运行任务在每个时间段的执行状态。
-     */
-    private List<com.example.serveside.response.EventInformation> eventInformations;
-
-    /**
      * 甘特图长度。
      */
     private Integer timeAxisLength;
+
+    /**
+     * 处理器运行任务在每个时间段的执行状态。
+     */
+    private List<com.example.serveside.response.EventInformation> eventInformations;
 
     /**
      * 处理器运行任务触发事件的时间点。

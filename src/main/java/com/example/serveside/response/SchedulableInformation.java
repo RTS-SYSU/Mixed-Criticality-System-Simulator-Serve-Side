@@ -26,6 +26,11 @@ public class SchedulableInformation
     private Boolean pwlpSchedulable;
 
     /**
+     *  动态资源共享协议是否可调度。
+     */
+    private Boolean dynamicSchedulable;
+
+    /**
      *  系统任务的信息。
      */
     private List<TaskInformation> taskInformations;
@@ -45,11 +50,12 @@ public class SchedulableInformation
      */
     private List<GanttInformation> cpuGanttInformations;
 
-    public SchedulableInformation(Boolean _MSRPSchedulable, Boolean _MrsPSchedulable, Boolean _PWLPSchedulable, ArrayList<BasicPCB> _taskInformations, HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray, ArrayList<BasicResource> totalResources, ArrayList<ResourceInformation> _resourceInformations, List<TaskGanttInformation> _taskGanttInformations, List<GanttInformation> _cpuGanttInformations)
+    public SchedulableInformation(Boolean _MSRPSchedulable, Boolean _MrsPSchedulable, Boolean _PWLPSchedulable, Boolean _dynamicSchedulable, ArrayList<BasicPCB> _taskInformations, HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray, ArrayList<BasicResource> totalResources, ArrayList<ResourceInformation> _resourceInformations, List<TaskGanttInformation> _taskGanttInformations, List<GanttInformation> _cpuGanttInformations)
     {
         this.msrpSchedulable = _MSRPSchedulable;
         this.mrspSchedulable = _MrsPSchedulable;
         this.pwlpSchedulable = _PWLPSchedulable;
+        this.dynamicSchedulable = _dynamicSchedulable;
         this.resourceInformations = _resourceInformations;
         this.taskGanttInformations = _taskGanttInformations;
         this.cpuGanttInformations = _cpuGanttInformations;
@@ -88,6 +94,10 @@ public class SchedulableInformation
     public void setPWLPSchedulable(Boolean _PWLPSchedulable) { this.pwlpSchedulable = _PWLPSchedulable; }
 
     public Boolean getPWLPSchedulable() { return this.pwlpSchedulable; }
+
+    public Boolean getDynamicSchedulable() { return this.dynamicSchedulable; }
+
+    public void setDynamicSchedulable(Boolean _dynamicSchedulable) { this.dynamicSchedulable = _dynamicSchedulable; }
 
     public void setTaskInformations(List<TaskInformation> _taskInformations) { this.taskInformations = _taskInformations; }
 

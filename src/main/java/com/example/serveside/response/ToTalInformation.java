@@ -10,6 +10,11 @@ import java.util.*;
  */
 public class ToTalInformation {
     /**
+     * 系统发生关键级切换的时间点。
+     */
+    private Integer criticalitySwitchTime;
+
+    /**
      *  处理器甘特图的信息。
      */
     private List<GanttInformation> cpuGanttInformations;
@@ -19,10 +24,6 @@ public class ToTalInformation {
      */
     private List<TaskGanttInformation> taskGanttInformations;
 
-    /**
-     * 系统发生关键级切换的时间点。
-     */
-    private Integer criticalitySwitchTime;
 
     /**
      * {@code TotalInformation} 的构造函数。

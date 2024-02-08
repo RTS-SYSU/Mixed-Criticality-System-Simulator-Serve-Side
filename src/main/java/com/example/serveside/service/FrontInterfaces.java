@@ -2,8 +2,7 @@ package com.example.serveside.service;
 
 import java.util.*;
 
-import com.example.serveside.response.ResourceInformation;
-import com.example.serveside.response.WorstCaseInformation;
+import com.example.serveside.response.*;
 import com.example.serveside.service.mrsp.MrsPWorstCase;
 import com.example.serveside.service.msrp.MSRPWorstCase;
 import com.example.serveside.service.pwlp.PWLPWorstCase;
@@ -11,15 +10,25 @@ import com.example.serveside.service.dynamic.DynamicWorstCase;
 import com.example.serveside.service.CommonUse.generatorTools.SimpleSystemGenerator;
 import com.example.serveside.service.CommonUse.BasicPCB;
 import com.example.serveside.service.CommonUse.BasicResource;
-import com.example.serveside.response.SchedulableInformation;
-import com.example.serveside.response.TaskGanttInformation;
 import com.example.serveside.request.ConfigurationInformation;
 import com.example.serveside.service.mrsp.MrsPMixedCriticalSystem;
 import com.example.serveside.service.msrp.MSRPMixedCriticalSystem;
 import com.example.serveside.service.pwlp.PWLPMixedCriticalSystem;
 import com.example.serveside.service.dynamic.DynamicMixedCriticalSystem;
-import sysu.rtsg.entity.Resource;
-import sysu.rtsg.entity.SporadicTask;
+
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.util.List;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /**
  * {@code FrontInterfaces} 主要起以下作用
@@ -51,21 +60,21 @@ public class FrontInterfaces
     /**
      * MrsP 协议下某一任务的较差运行情况下的任务的时间点发布
      * */
-    public static TreeMap<Integer, ArrayList<Integer>> MrsPTaskReleaseTimes;
+    public static TreeMap<Integer, ArrayList<Integer>> MrsPWorstCaseTaskReleaseTimes;
 
     /**
      * MSRP 协议下某一个任务的较差运行情况下的任务的时间点发布
      * */
-    public static TreeMap<Integer, ArrayList<Integer>> MSRPTaskReleaseTimes;
+    public static TreeMap<Integer, ArrayList<Integer>> MSRPWorstCaseTaskReleaseTimes;
     /**
      * PWLP 协议下某一个任务的较差运行情况下的任务的时间点发布
      * */
-    public static TreeMap<Integer, ArrayList<Integer>> PWLPTaskReleaseTimes;
+    public static TreeMap<Integer, ArrayList<Integer>> PWLPWorstCaseTaskReleaseTimes;
 
     /**
      * 动态资源共享协议下某一个任务的最坏运行情况的任务的时间点发布
      */
-    public static TreeMap<Integer, ArrayList<Integer>> DynamicTaskReleaseTimes;
+    public static TreeMap<Integer, ArrayList<Integer>> DynamicWorstCaseTaskReleaseTimes;
 
     /**
      * 在动态资源共享协议下，任务访问局部资源时短暂提升的优先级 / 任务自旋等待全局资源时优先级短暂提升（任务持有全局资源时也提升到对应的优先级）
@@ -75,12 +84,12 @@ public class FrontInterfaces
     /**
      * {@code SchedulableResult}使用前端传递的系统环境配置参数随机生成一组任务、资源、任务发布时间等信息，并模拟任务在不同资源共享协议下的执行情况，并将执行结果返回。
      *
-     * @param requestInformation 系统环境配置参数
+     * @param configurationInformation 系统环境配置参数
      */
-    public static SchedulableInformation SchedulableResult(ConfigurationInformation requestInformation)
+    public static SchedulableInformation SchedulableResult(ConfigurationInformation configurationInformation)
     {
         // 初始化一个模拟器并生成任务、资源以及任务使用资源的情况
-        SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(requestInformation);
+        SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(configurationInformation);
         totalTasks = systemGenerator.generateTasks();
         // 按照 Task Id 从小到大进行排序
         totalTasks.sort((t1, t2) -> Integer.compare(t1.staticTaskId, t2.staticTaskId));
@@ -150,13 +159,13 @@ public class FrontInterfaces
 
 
         // 初始化 MSRP 协议的配置
-        MSRPMixedCriticalSystem.MSRPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
+        MSRPMixedCriticalSystem.MSRPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, configurationInformation.getIsStartUpSwitch(), configurationInformation.getCriticalitySwitchTime());
         // 初始化 MrsP 协议的配置
-        MrsPMixedCriticalSystem.MrsPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
+        MrsPMixedCriticalSystem.MrsPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, configurationInformation.getIsStartUpSwitch(), configurationInformation.getCriticalitySwitchTime());
         // 初始化 PWLP 协议的设置
-        PWLPMixedCriticalSystem.PWLPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
+        PWLPMixedCriticalSystem.PWLPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, configurationInformation.getIsStartUpSwitch(), configurationInformation.getCriticalitySwitchTime());
         // 初始化动态资源共享协议的设置
-        DynamicMixedCriticalSystem.DynamicInitialize(totalTasks, resourceRequiredPrioritiesArray, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());
+        DynamicMixedCriticalSystem.DynamicInitialize(totalTasks, resourceRequiredPrioritiesArray, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, configurationInformation.getIsStartUpSwitch(), configurationInformation.getCriticalitySwitchTime());
 
         // 运行 MSRP 协议
         MSRPMixedCriticalSystem.SystemExecute();
@@ -210,11 +219,17 @@ public class FrontInterfaces
             resourceInformations.get(i).setAccessTasks(accessTasks.get(i));
         }
 
-        return new SchedulableInformation(MSRPMixedCriticalSystem.isSchedulable,
-                MrsPMixedCriticalSystem.isSchedulable,
-                PWLPMixedCriticalSystem.isSchedulable,
-                totalTasks, resourceRequiredPrioritiesArray, totalResources, resourceInformations,
-                taskGanttInformations, cpuGanttInformations);
+
+
+       SchedulableInformation schedulableInformation = new SchedulableInformation(MSRPMixedCriticalSystem.isSchedulable,
+                                                            MrsPMixedCriticalSystem.isSchedulable,
+                                                            PWLPMixedCriticalSystem.isSchedulable,
+                                                            DynamicMixedCriticalSystem.isSchedulable,
+                                                            totalTasks, resourceRequiredPrioritiesArray, totalResources, resourceInformations,
+                                                            taskGanttInformations, cpuGanttInformations);
+
+        saveLogInfo(configurationInformation, schedulableInformation);
+        return schedulableInformation;
     }
 
     /**
@@ -227,9 +242,9 @@ public class FrontInterfaces
     public static WorstCaseInformation MrsPWorstCaseExecution(Integer sufferTaskId, Boolean isStartUpSwitch, Integer criticalitySwitchTime)
     {
         // 先调用 SimpleSystemGenerator 生成：在 staticTaskId 最坏情况下所有任务的发布时间
-        MrsPTaskReleaseTimes = new MrsPWorstCase().MrsPGeneratedWorstCaseReleaseTime(totalTasks, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
+        MrsPWorstCaseTaskReleaseTimes = new MrsPWorstCase().MrsPGeneratedWorstCaseReleaseTime(totalTasks, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
         // 初始化一下协议的运行配置
-        MrsPMixedCriticalSystem.MrsPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, MrsPTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
+        MrsPMixedCriticalSystem.MrsPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, MrsPWorstCaseTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
         // 运行协议
         MrsPMixedCriticalSystem.SystemExecute();
         // 返回调度信息
@@ -245,9 +260,9 @@ public class FrontInterfaces
      * */
     public static WorstCaseInformation MSRPWorstCaseExecution(Integer sufferTaskId, Boolean isStartUpSwitch, Integer criticalitySwitchTime) {
         // 先调用 SimpleSystemGenerator 生成：在 staticTaskId 最坏情况下所有任务的发布时间
-        MSRPTaskReleaseTimes = new MSRPWorstCase().MSRPGeneratedWorstCaseReleaseTime(totalTasks, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
+        MSRPWorstCaseTaskReleaseTimes = new MSRPWorstCase().MSRPGeneratedWorstCaseReleaseTime(totalTasks, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
         // 初始化一下协议的运行配置
-        MSRPMixedCriticalSystem.MSRPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, MSRPTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
+        MSRPMixedCriticalSystem.MSRPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, MSRPWorstCaseTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
         // 运行协议
         MSRPMixedCriticalSystem.SystemExecute();
         // 返回调度信息
@@ -263,9 +278,9 @@ public class FrontInterfaces
      * */
     public static WorstCaseInformation PWLPWorstCaseExecution(Integer sufferTaskId, Boolean isStartUpSwitch, Integer criticalitySwitchTime) {
         // 先调用 SimpleSystemGenerator 生成：在 staticTaskId 最坏情况下所有任务的发布时间
-        PWLPTaskReleaseTimes = new PWLPWorstCase().PWLPGeneratedWorstCaseReleaseTime(totalTasks, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
+        PWLPWorstCaseTaskReleaseTimes = new PWLPWorstCase().PWLPGeneratedWorstCaseReleaseTime(totalTasks, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
         // 初始化一下协议的运行配置
-        PWLPMixedCriticalSystem.PWLPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, PWLPTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
+        PWLPMixedCriticalSystem.PWLPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, PWLPWorstCaseTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
         // 运行协议
         PWLPMixedCriticalSystem.SystemExecute();
         // 返回调度信息
@@ -281,12 +296,48 @@ public class FrontInterfaces
      * */
     public static WorstCaseInformation DynamicWorstCaseExecution(Integer sufferTaskId, Boolean isStartUpSwitch, Integer criticalitySwitchTime) {
         // 先调用 SimpleSystemGenerator 生成：在 staticTaskId 最坏情况下所有任务的发布时间
-        DynamicTaskReleaseTimes = new DynamicWorstCase().DynamicGeneratedWorstCaseReleaseTime(totalTasks, resourceRequiredPrioritiesArray, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
+        DynamicWorstCaseTaskReleaseTimes = new DynamicWorstCase().DynamicGeneratedWorstCaseReleaseTime(totalTasks, resourceRequiredPrioritiesArray, totalResources, sufferTaskId, SimpleSystemGenerator.TOTAL_CPU_CORE_NUM);
         // 初始化一下协议的运行配置
-        DynamicMixedCriticalSystem.DynamicInitialize(totalTasks, resourceRequiredPrioritiesArray, totalResources, SimpleSystemGenerator.total_partitions, DynamicTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
+        DynamicMixedCriticalSystem.DynamicInitialize(totalTasks, resourceRequiredPrioritiesArray, totalResources, SimpleSystemGenerator.total_partitions, DynamicWorstCaseTaskReleaseTimes, isStartUpSwitch, criticalitySwitchTime);
         // 运行协议
         DynamicMixedCriticalSystem.SystemExecute();
         // 返回调度信息
         return new WorstCaseInformation(DynamicMixedCriticalSystem.isSchedulable, DynamicMixedCriticalSystem.PackageTotalInformation());
+    }
+
+    /**
+     * {@code saveLogInfo} 保存本次模拟运行的结果，包含系统环境配置信息， 任务和资源的信息、任务运行情况
+     * */
+    public static void saveLogInfo(ConfigurationInformation configurationInformation, SchedulableInformation schedulableInformation) {
+        // 创建logs文件夹
+        // 创建一个 File 对象以便创建 logs 文件夹
+        File directory = new File("logs");
+
+        // 检查文件夹是否存在
+        if (!directory.exists() || !directory.isDirectory()) {
+            boolean isDirectoryCreated = directory.mkdir();
+            if (isDirectoryCreated) {
+                System.out.print("The logs directory was successfully created!\n");
+            }else {
+                System.out.print("Failed to create log directory!\n");
+                return ;
+            }
+        }
+
+        Date d = new Date();
+        DateFormat dataFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+        String filename = "logs/" + dataFormat.format(d)+".txt";
+
+        try {
+            // 写入本次模拟的数据
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            String jsonString = gson.toJson(new LogInformation(configurationInformation, schedulableInformation, taskReleaseTimes,
+                    MSRPMixedCriticalSystem.PackageTotalInformation(), MrsPMixedCriticalSystem.PackageTotalInformation(), PWLPMixedCriticalSystem.PackageTotalInformation(), DynamicMixedCriticalSystem.PackageTotalInformation()));
+
+            Files.write(Paths.get(filename), Arrays.asList(jsonString), StandardCharsets.UTF_8);
+            System.out.println("Logs write successfully!");
+        } catch (IOException e) {
+            System.out.println("Error：" + e.getMessage());
+        }
     }
 }
