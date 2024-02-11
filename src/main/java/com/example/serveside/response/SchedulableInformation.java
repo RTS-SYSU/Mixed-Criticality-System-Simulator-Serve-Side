@@ -50,6 +50,43 @@ public class SchedulableInformation
      */
     private List<GanttInformation> cpuGanttInformations;
 
+    public SchedulableInformation(LogInformation logInformation) {
+        if (logInformation != null) {
+            this.msrpSchedulable = logInformation.msrpSchedulable;
+            this.mrspSchedulable = logInformation.mrspSchedulable;
+            this.pwlpSchedulable = logInformation.pwlpSchedulable;
+            this.dynamicSchedulable = logInformation.dynamicSchedulable;
+
+            this.taskInformations  = logInformation.taskInformations;
+            this.resourceInformations = logInformation.resourceInformations;
+
+            taskGanttInformations = new ArrayList<>();
+            cpuGanttInformations = new ArrayList<>();
+            List<TaskGanttInformation> _taskGanttInformations = logInformation.mrspTotalInformation.getTaskGanttInformations();
+            List<GanttInformation> _cpuGanttInformations = logInformation.mrspTotalInformation.getCpuGanttInformations();
+
+            for (TaskGanttInformation _taskGanttInformation :  _taskGanttInformations) {
+                taskGanttInformations.add(new TaskGanttInformation(_taskGanttInformation.getStaticPid(), _taskGanttInformation.getDynamicPid(), _taskGanttInformation.getRunningCPUCore(), new GanttInformation(new ArrayList<>(), new ArrayList<>(), 30)));
+            }
+
+            for (GanttInformation _cpuGanttInformation :  _cpuGanttInformations) {
+                cpuGanttInformations.add(new GanttInformation(new ArrayList<>(), new ArrayList<>(), 30));
+            }
+
+        }else {
+            this.msrpSchedulable = false;
+            this.mrspSchedulable = false;
+            this.pwlpSchedulable = false;
+            this.dynamicSchedulable = false;
+
+            this.taskInformations  = null;
+            this.resourceInformations = null;
+
+            taskGanttInformations = null;
+            cpuGanttInformations = null;
+        }
+    }
+
     public SchedulableInformation(Boolean _MSRPSchedulable, Boolean _MrsPSchedulable, Boolean _PWLPSchedulable, Boolean _dynamicSchedulable, ArrayList<BasicPCB> _taskInformations, HashMap<Integer, ArrayList<Integer>> resourceRequiredPrioritiesArray, ArrayList<BasicResource> totalResources, ArrayList<ResourceInformation> _resourceInformations, List<TaskGanttInformation> _taskGanttInformations, List<GanttInformation> _cpuGanttInformations)
     {
         this.msrpSchedulable = _MSRPSchedulable;

@@ -1,7 +1,11 @@
 package com.example.serveside.service.CommonUse;
 
 
+import com.example.serveside.response.ResourceInformation;
+import sysu.rtsg.entity.Resource;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * {@code BasicResource} 类是模拟器中用于存储管理和控制资源的信息的基本数据结构。
@@ -84,6 +88,28 @@ public class BasicResource {
         // 深度克隆 ArrayList<Integer>
         this.ceiling = new ArrayList<>();
         this.ceiling.addAll(basicResource.ceiling);
+
+    }
+
+    public BasicResource(ResourceInformation resourceInformation, ArrayList<BasicPCB> totalTasks, int totalCPUNum) {
+        this.isOccupied = false;
+        this.id = resourceInformation.getResourceId();
+        this.c_low = resourceInformation.getC_low();
+        this.c_high = resourceInformation.getC_high();
+        this.isGlobal = resourceInformation.getIsGlobalResource() == "true" ? true : false;
+
+        // 深度克隆 ArrayList<Integer>
+        this.ceiling = new ArrayList<>();
+        for (int i = 0; i < totalCPUNum; ++i) {
+            int maxCeiling = 0;
+            for (BasicPCB task : totalTasks) {
+                if (task.accessResourceIndex.contains(this.id)) {
+                    maxCeiling = Math.max(task.basePriority, maxCeiling);
+                }
+            }
+            this.ceiling.add(maxCeiling);
+        }
+
 
     }
 }

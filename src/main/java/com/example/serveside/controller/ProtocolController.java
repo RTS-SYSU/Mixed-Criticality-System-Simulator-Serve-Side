@@ -13,6 +13,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import com.example.serveside.response.SchedulableInformation;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import java.io.File;
+
 
 @Controller
 @CrossOrigin
@@ -163,6 +168,44 @@ public class ProtocolController {
     public WorstCaseInformation DynamicWorstCaseExecution(@RequestParam(value = "staticPid") Integer staticPid, @RequestParam(value = "isStartUpSwitch") Boolean isStartUpSwitch, @RequestParam(value = "criticalitySwitchTime") Integer criticalitySwitchTime)
     {
         return com.example.serveside.service.FrontInterfaces.DynamicWorstCaseExecution(staticPid, isStartUpSwitch, criticalitySwitchTime);
+    }
+
+    /**
+     * {@code GetHistoryRecords} 传递 logs 文件夹下里的历史记录。
+     *
+     * @return logs 文件夹下里的历史记录
+     * */
+    @ResponseBody
+    @GetMapping(value = "/getAllHistoryRecords")
+    public List<String> GetAllHistoryRecords()
+    {
+        // 创建File对象
+        File directory = new File("logs/");
+        List<String> historyRecords = new ArrayList<>();
+
+        // 获取文件夹下所有的文件和文件夹名称
+        String[] files = directory.list();
+        if (files != null) {
+            for (String filename : files) {
+                historyRecords.add(filename);
+            }
+        } else {
+            historyRecords.add("Empty History Record!");
+        }
+
+        return historyRecords;
+    }
+
+    /**
+     * {@code GetHistoryRecords} 传递 logs 文件夹下里的历史记录。
+     *
+     * @return logs 文件夹下里的历史记录
+     * */
+    @ResponseBody
+    @PostMapping(value = "/importHistoryRecord")
+    public SchedulableInformation ImportHistoryRecord(@RequestParam(value = "filename") String filename)
+    {
+        return com.example.serveside.service.FrontInterfaces.ImportHistoryRecord(filename);
     }
 
 }

@@ -192,7 +192,7 @@ public class TaskInformation
         for (int i = 0; i < basicPCB.accessResourceIndex.size(); ++i) {
             int resourceIndex = basicPCB.accessResourceIndex.get(i);
             if (totalResources.get(resourceIndex).isGlobal) {
-                this.resourceRequiredPriorities.add(resourceRequiredPriorities.get(resourceIndex));
+                this.resourceRequiredPriorities.add(resourceRequiredPriorities.get(i));
             }else {
                 this.resourceRequiredPriorities.add(-1);
             }

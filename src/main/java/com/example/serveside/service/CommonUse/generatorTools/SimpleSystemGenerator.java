@@ -109,22 +109,22 @@ public class SimpleSystemGenerator {
 
     /**
      * 根据前端传递的运行参数配置进行初始化。
-     * @param requestInformation 前端传递的运行参数配置。
+     * @param configurationInformation 前端传递的运行参数配置。
      */
-    public SimpleSystemGenerator(ConfigurationInformation requestInformation) {
-        TOTAL_CPU_CORE_NUM = requestInformation.getTotalCPUNum();
-        NUMBER_OF_TASK_IN_A_PARTITION = requestInformation.getNumberOfTaskInAPartition();
-        NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE = requestInformation.getNumberOfMaxAccessToOneResource();
+    public SimpleSystemGenerator(ConfigurationInformation configurationInformation) {
+        TOTAL_CPU_CORE_NUM = configurationInformation.getTotalCPUNum();
+        NUMBER_OF_TASK_IN_A_PARTITION = configurationInformation.getNumberOfTaskInAPartition();
+        NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE = configurationInformation.getNumberOfMaxAccessToOneResource();
         total_partitions = TOTAL_CPU_CORE_NUM;
         total_tasks = TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
         
-        this.minT = requestInformation.getMinPeriod();
-        this.maxT = requestInformation.getMaxPeriod();
-        this.resourceSharingFactor = requestInformation.getResourceSharingFactor();
+        this.minT = configurationInformation.getMinPeriod();
+        this.maxT = configurationInformation.getMaxPeriod();
+        this.resourceSharingFactor = configurationInformation.getResourceSharingFactor();
         this.totalUtil = 0.1 * (double) TOTAL_CPU_CORE_NUM * NUMBER_OF_TASK_IN_A_PARTITION;
         this.number_of_max_access = NUMBER_OF_MAX_ACCESS_TO_ONE_RESOURCE;
 
-        switch (requestInformation.getResourceType()) {
+        switch (configurationInformation.getResourceType()) {
             case "VERY LONG LENGTH":
                 this.cs_len_range = CS_LENGTH_RANGE.VERY_LONG_CSLEN;
                 break;
@@ -145,7 +145,7 @@ public class SimpleSystemGenerator {
                 break;
         }
 
-        switch (requestInformation.getResourceNum()) {
+        switch (configurationInformation.getResourceNum()) {
             case "HALF PARTITIONS" :
                 this.numberOfResource = RESOURCES_RANGE.HALF_PARTITIONS;
                 break;

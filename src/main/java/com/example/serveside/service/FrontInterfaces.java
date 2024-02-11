@@ -43,6 +43,10 @@ import com.google.gson.GsonBuilder;
 public class FrontInterfaces
 {
     /**
+     * 是否是历史记录。
+     * */
+    public static Boolean isHistoryRecord = false;
+    /**
      * 随机生成的任务的信息。
      * */
     public static ArrayList<BasicPCB> totalTasks;
@@ -88,6 +92,7 @@ public class FrontInterfaces
      */
     public static SchedulableInformation SchedulableResult(ConfigurationInformation configurationInformation)
     {
+        isHistoryRecord = false;
         // 初始化一个模拟器并生成任务、资源以及任务使用资源的情况
         SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(configurationInformation);
         totalTasks = systemGenerator.generateTasks();
@@ -228,7 +233,10 @@ public class FrontInterfaces
                                                             totalTasks, resourceRequiredPrioritiesArray, totalResources, resourceInformations,
                                                             taskGanttInformations, cpuGanttInformations);
 
-        saveLogInfo(configurationInformation, schedulableInformation);
+        if (!isHistoryRecord) {
+            saveLogInfo(configurationInformation, schedulableInformation);
+        }
+
         return schedulableInformation;
     }
 
@@ -339,5 +347,47 @@ public class FrontInterfaces
         } catch (IOException e) {
             System.out.println("Error：" + e.getMessage());
         }
+    }
+
+    public static SchedulableInformation ImportHistoryRecord(String filename) {
+        LogInformation logInformation = null;
+        isHistoryRecord = true;
+        try {
+            // 读取文件内容到字符串
+            String content = new String(Files.readAllBytes(Paths.get("logs/"+filename)), StandardCharsets.UTF_8);
+
+            // 创建Gson实例
+            Gson gson = new Gson();
+
+            // 将字符串反序列化为LogInformation实例
+            logInformation = gson.fromJson(content, LogInformation.class);
+
+            // 覆盖当前所使用的任务和资源信息
+            totalTasks = new ArrayList<>();
+            for (TaskInformation taskInformation : logInformation.taskInformations) {
+                totalTasks.add(new BasicPCB(taskInformation));
+            }
+
+            totalResources = new ArrayList<>();
+            for (ResourceInformation resourceInformation : logInformation.resourceInformations) {
+                totalResources.add(new BasicResource(resourceInformation, totalTasks, logInformation.configurationInformation.getTotalCPUNum()));
+            }
+
+            taskReleaseTimes = logInformation.taskReleaseTimes;
+
+            resourceRequiredPrioritiesArray = new HashMap<>();
+            for (TaskInformation taskInformation : logInformation.taskInformations) {
+                resourceRequiredPrioritiesArray.put(taskInformation.getStaticPid(), taskInformation.getResourceRequiredPriorities());
+            }
+
+            // 重新初始化一个模拟器覆盖之前的版本
+            SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(logInformation.configurationInformation);
+            // 输出或处理logInformation对象
+            System.out.println("Logs read successfully!");
+
+        } catch (IOException e) {
+            System.err.println("Error reading from file: " + e.getMessage());
+        }
+        return new SchedulableInformation(logInformation);
     }
 }

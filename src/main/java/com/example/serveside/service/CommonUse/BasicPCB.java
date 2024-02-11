@@ -1,5 +1,7 @@
 package com.example.serveside.service.CommonUse;
 
+import com.example.serveside.response.TaskInformation;
+
 import java.util.ArrayList;
 import java.util.Stack;
 
@@ -239,6 +241,36 @@ public class BasicPCB {
         criticality = copy.criticality;
         WCCT_low = copy.WCCT_low;
         WCCT_high = copy.WCCT_high;
+
+        /* Initialize the procedure control block. */
+        dynamicTaskId = -1;
+        spin = false;
+        elapsedTime = 0;
+        executedTime = 0;
+        computeAndSpinTime = 0;
+        isAccessGlobalResource = false;
+        isAccessLocalResource = false;
+        remainResourceComputationTime = 0;
+        requestResourceTh = 0;
+        systemCriticalityWhenAccessResource = 0;
+    }
+
+    public BasicPCB(TaskInformation taskInformation) {
+        priorities = new Stack<>();
+        basePriority = taskInformation.getPriority();
+        priorities.add(this.basePriority);
+
+        period = taskInformation.getPeriod();
+        deadline = period;
+        utilization = taskInformation.getUtilization();
+        staticTaskId = taskInformation.getStaticPid();
+        totalNeededTime = taskInformation.getTotalTime();
+        resourceAccessTime = taskInformation.getResourceAccessTime();
+        accessResourceIndex = taskInformation.getResourceAccessIndex();
+        baseRunningCpuCore = taskInformation.getAllocation();
+        criticality = taskInformation.getCriticality();
+        WCCT_low = taskInformation.getWCCTLow();
+        WCCT_high = taskInformation.getWCCTHigh();
 
         /* Initialize the procedure control block. */
         dynamicTaskId = -1;
