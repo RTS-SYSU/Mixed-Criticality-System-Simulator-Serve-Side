@@ -56,7 +56,7 @@ public class LogInformation {
         resourceInformations = schedulableInformation.getResourceInformations();
         msrpSchedulable = schedulableInformation.getMsrpSchedulable();
         mrspSchedulable = schedulableInformation.getMrspSchedulable();
-        pwlpSchedulable = schedulableInformation.getPWLPSchedulable();
+        pwlpSchedulable = schedulableInformation.getPwlpSchedulable();
         dynamicSchedulable = schedulableInformation.getDynamicSchedulable();
         taskReleaseTimes = _taskReleaseTimes;
         msrpTotalInformation = _msrpTotalInformation;

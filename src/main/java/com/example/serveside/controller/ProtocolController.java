@@ -2,6 +2,8 @@ package com.example.serveside.controller;
 
 import com.example.serveside.request.ConfigurationInformation;
 
+import com.example.serveside.request.TestConfiguration;
+import com.example.serveside.response.SchedulabilityTestResult;
 import com.example.serveside.response.ToTalInformation;
 import com.example.serveside.response.WorstCaseInformation;
 import com.example.serveside.service.CommonUse.generatorTools.SimpleSystemGenerator;
@@ -197,7 +199,7 @@ public class ProtocolController {
     }
 
     /**
-     * {@code GetHistoryRecords} 传递 logs 文件夹下里的历史记录。
+     * {@code ImportHistoryRecords} 导入 logs 文件夹下里的历史记录。
      *
      * @return logs 文件夹下里的历史记录
      * */
@@ -208,4 +210,41 @@ public class ProtocolController {
         return com.example.serveside.service.FrontInterfaces.ImportHistoryRecord(filename);
     }
 
+
+    /**
+     * {@code testSchedulability} 进行大规模可调度性测试
+     * */
+    @ResponseBody
+    @PostMapping(value = "/testSchedulability")
+    public SchedulabilityTestResult TestSchedulability(@RequestBody TestConfiguration testConfiguration)
+    {
+        int msrpSchedulabilityNum = 0;
+        int mrspSchedulabilityNum = 0;
+        int pwlpSchedulabilityNum = 0;
+        int dynamicSchedulabilityNum = 0;
+        SchedulableInformation schedulableInformation = null;
+        com.example.serveside.service.FrontInterfaces.isTestAtScale = true;
+
+        for (int i = 0; i < testConfiguration.getTestNum(); ++i) {
+            schedulableInformation = com.example.serveside.service.FrontInterfaces.SchedulableResult(testConfiguration.getConfigurationInformation());
+            if (schedulableInformation.getMsrpSchedulable()) {
+                ++msrpSchedulabilityNum;
+            }
+
+            if (schedulableInformation.getMrspSchedulable()) {
+                ++mrspSchedulabilityNum;
+            }
+
+            if (schedulableInformation.getPwlpSchedulable()) {
+                ++pwlpSchedulabilityNum;
+            }
+
+            if (schedulableInformation.getDynamicSchedulable()) {
+                ++dynamicSchedulabilityNum;
+            }
+        }
+
+        com.example.serveside.service.FrontInterfaces.isTestAtScale = false;
+        return new SchedulabilityTestResult(msrpSchedulabilityNum, mrspSchedulabilityNum, pwlpSchedulabilityNum, dynamicSchedulabilityNum, testConfiguration.getTestNum());
+    }
 }

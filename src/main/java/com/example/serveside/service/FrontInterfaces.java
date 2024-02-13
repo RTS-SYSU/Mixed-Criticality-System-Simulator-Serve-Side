@@ -46,6 +46,8 @@ public class FrontInterfaces
      * 是否是历史记录。
      * */
     public static Boolean isHistoryRecord = false;
+
+    public static Boolean isTestAtScale = false;
     /**
      * 随机生成的任务的信息。
      * */
@@ -233,7 +235,7 @@ public class FrontInterfaces
                                                             totalTasks, resourceRequiredPrioritiesArray, totalResources, resourceInformations,
                                                             taskGanttInformations, cpuGanttInformations);
 
-        if (!isHistoryRecord) {
+        if (!isHistoryRecord && !isTestAtScale) {
             saveLogInfo(configurationInformation, schedulableInformation);
         }
 
