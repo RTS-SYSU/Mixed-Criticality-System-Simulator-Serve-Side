@@ -581,4 +581,146 @@ public class SimpleSystemGenerator {
         return taskReleaseTimes;
     }
 
+    public ArrayList<BasicPCB> testGenerateTask() {
+        ArrayList<BasicPCB> tasks = new ArrayList<>();
+
+        BasicPCB  task = new BasicPCB(1, 50, 0.1, 0);
+        task.criticality = 1;
+        task.totalNeededTime = 5;
+        tasks.add(task);
+
+        task = new BasicPCB(2, 50, 0.1, 1);
+        task.criticality = 0;
+        task.totalNeededTime = 5;
+        tasks.add(task);
+
+        task = new BasicPCB(3, 50, 0.1, 2);
+        task.criticality = 0;
+        task.totalNeededTime = 5;
+        tasks.add(task);
+
+        task = new BasicPCB(4, 50, 0.1, 3);
+        task.criticality = 1;
+        task.totalNeededTime = 5;
+        tasks.add(task);
+
+        return tasks;
+    }
+
+    public ArrayList<BasicResource> testGenerateResources() {
+        ArrayList<BasicResource> resources = new ArrayList<>();
+        resources.add(new BasicResource(0, 3, 4));
+        resources.add(new BasicResource(1, 17, 20));
+        return resources;
+    }
+
+    public ArrayList<ArrayList<BasicPCB>> testGenerateResourceUsage(ArrayList<BasicPCB> tasks, ArrayList<BasicResource> resources) {
+        BasicPCB taskTmp;
+
+        // task 0
+        taskTmp = tasks.get(0);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+        // task 1
+        taskTmp = tasks.get(1);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+        // task 2
+        taskTmp = tasks.get(2);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+        // task 3
+        taskTmp = tasks.get(3);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+
+        // 分配 CPU
+        ArrayList<ArrayList<BasicPCB>> generatedTaskSets = new ArrayList<>();
+        ArrayList<BasicPCB> cpu0 = new ArrayList<>();
+        tasks.get(0).baseRunningCpuCore = 0;
+        tasks.get(2).baseRunningCpuCore = 0;
+        cpu0.add(tasks.get(0));
+        cpu0.add(tasks.get(2));
+
+        ArrayList<BasicPCB> cpu1 = new ArrayList<>();
+        tasks.get(1).baseRunningCpuCore = 1;
+        tasks.get(3).baseRunningCpuCore = 1;
+        cpu1.add(tasks.get(3));
+        cpu1.add(tasks.get(1));
+
+        generatedTaskSets.add(cpu0);
+        generatedTaskSets.add(cpu1);
+
+        Random ran = new Random();
+        // generate WCCT for every task
+        for (ArrayList<BasicPCB> taskSet : generatedTaskSets) {
+            for (BasicPCB oneTask : taskSet) {
+
+                double Ui = oneTask.utilization;
+                int Ti = oneTask.period;
+                int sigma = 0;
+                for (int k = 0; k < oneTask.accessResourceIndex.size(); ++k) {
+                    BasicResource rk = resources.get(oneTask.accessResourceIndex.get(k));
+                    sigma = sigma + rk.c_high;
+                }
+
+                int WCCT = (int) (Ui * Ti - sigma);
+                if (WCCT < 0)
+                    WCCT = 0;
+                oneTask.WCCT_low = WCCT;
+                oneTask.WCCT_high = (int) ((1 + ran.nextFloat() / 2) * WCCT);
+            }
+        }
+
+
+        if (resources != null && !resources.isEmpty()) {
+            // initialize the resource usage
+            for (BasicResource res : resources) {
+                res.isGlobal = false;
+                res.ceiling.clear();
+            }
+
+            /* for each resource */
+            for (BasicResource resource : resources) {
+                /* for a given resource, traversing all the tasks and record the information */
+                /* for each partition */
+                resource.isGlobal = true;
+                for (ArrayList<BasicPCB> generatedTaskSet : generatedTaskSets) {
+                    int ceiling = 0;
+
+                    /* for each task in the given partition */
+                    for (BasicPCB task : generatedTaskSet) {
+                        // set the request task and its cpu core
+                        if (task.accessResourceIndex.contains(resource.id)) {
+                            ceiling = Math.max(task.priorities.peek(), ceiling);
+                        }
+                    }
+
+                    // Priority Ceiling Protocol: get the resource ceiling that indicates the highest base priority among all the tasks
+                    // that require this resource.
+                    // record all the partition's highest ceiling
+                    resource.ceiling.add(ceiling);
+                    if (ceiling == 0)
+                        resource.isGlobal = false;
+                }
+            }
+        } else {
+            System.err.print("ERROR at resource usage, taskset is NULL!");
+            System.exit(-1);
+        }
+
+        return generatedTaskSets;
+    }
+
+    public TreeMap<Integer, ArrayList<Integer>> testGenerateTaskReleaseTime(ArrayList<BasicPCB> totalTasks) {
+        TreeMap<Integer, ArrayList<Integer>> taskReleaseTimes = new TreeMap<>();
+        taskReleaseTimes.put(1, new ArrayList<>(Arrays.asList(0, 1)));
+        taskReleaseTimes.put(3, new ArrayList<>(Arrays.asList(2, 3)));
+        return taskReleaseTimes;
+    }
+
 }

@@ -67,12 +67,19 @@ public class FrontInterfaces
     {
         // 初始化一个模拟器并生成任务、资源以及任务使用资源的情况
         SimpleSystemGenerator systemGenerator = new SimpleSystemGenerator(requestInformation);
-        totalTasks = systemGenerator.generateTasks();
+//        totalTasks = systemGenerator.generateTasks();
+//        // 按照 Task Id 从小到大进行排序
+//        totalTasks.sort((t1, t2) -> Integer.compare(t1.staticTaskId, t2.staticTaskId));
+//        totalResources = systemGenerator.generateResources();
+//        systemGenerator.generateResourceUsage(totalTasks, totalResources);
+//        taskReleaseTimes = systemGenerator.generateTaskReleaseTime(totalTasks);
+
+        totalTasks = systemGenerator.testGenerateTask();
         // 按照 Task Id 从小到大进行排序
         totalTasks.sort((t1, t2) -> Integer.compare(t1.staticTaskId, t2.staticTaskId));
-        totalResources = systemGenerator.generateResources();
-        systemGenerator.generateResourceUsage(totalTasks, totalResources);
-        taskReleaseTimes = systemGenerator.generateTaskReleaseTime(totalTasks);
+        totalResources = systemGenerator.testGenerateResources();
+        systemGenerator.testGenerateResourceUsage(totalTasks, totalResources);
+        taskReleaseTimes = systemGenerator.testGenerateTaskReleaseTime(totalTasks);
 
         // 初始化 MSRP 协议的配置
         MSRPMixedCriticalSystem.MSRPInitialize(totalTasks, totalResources, SimpleSystemGenerator.total_partitions, taskReleaseTimes, requestInformation.getIsStartUpSwitch(), requestInformation.getCriticalitySwitchTime());

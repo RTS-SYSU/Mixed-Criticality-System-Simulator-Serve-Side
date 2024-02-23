@@ -1,0 +1,1619 @@
+{
+  "configurationInformation": {
+    "totalCPUNum": 2,
+    "numberOfTaskInAPartition": 2,
+    "minPeriod": 100,
+    "maxPeriod": 1000,
+    "numberOfMaxAccessToOneResource": 2,
+    "resourceSharingFactor": 0.5,
+    "resourceType": "VERY SHORT LENGTH",
+    "resourceNum": "PARTITIONS",
+    "isStartUpSwitch": false,
+    "criticalitySwitchTime": -1
+  },
+  "taskInformations": [
+    {
+      "staticPid": 0,
+      "dynamicPid": -1,
+      "priority": 1,
+      "criticality": 1,
+      "releaseTime": 1,
+      "allocation": 0,
+      "WCCTLow": 26,
+      "WCCTHigh": 30,
+      "utilization": 0.2272897265968277,
+      "period": 118,
+      "totalTime": 26,
+      "resourceAccessTime": [],
+      "resourceAccessIndex": [],
+      "resourceRequiredPriorities": []
+    },
+    {
+      "staticPid": 1,
+      "dynamicPid": -1,
+      "priority": 3,
+      "criticality": 0,
+      "releaseTime": 1,
+      "allocation": 1,
+      "WCCTLow": 11,
+      "WCCTHigh": 16,
+      "utilization": 0.08349371013064663,
+      "period": 138,
+      "totalTime": 11,
+      "resourceAccessTime": [],
+      "resourceAccessIndex": [],
+      "resourceRequiredPriorities": []
+    },
+    {
+      "staticPid": 2,
+      "dynamicPid": -1,
+      "priority": 2,
+      "criticality": 0,
+      "releaseTime": 1,
+      "allocation": 1,
+      "WCCTLow": 4,
+      "WCCTHigh": 4,
+      "utilization": 0.015767564624648345,
+      "period": 259,
+      "totalTime": 4,
+      "resourceAccessTime": [],
+      "resourceAccessIndex": [],
+      "resourceRequiredPriorities": []
+    },
+    {
+      "staticPid": 3,
+      "dynamicPid": -1,
+      "priority": 1,
+      "criticality": 1,
+      "releaseTime": 1,
+      "allocation": 1,
+      "WCCTLow": 45,
+      "WCCTHigh": 55,
+      "utilization": 0.07344899864787735,
+      "period": 677,
+      "totalTime": 49,
+      "resourceAccessTime": [
+        8,
+        39
+      ],
+      "resourceAccessIndex": [
+        0,
+        1
+      ],
+      "resourceRequiredPriorities": [
+        -1,
+        -1
+      ]
+    }
+  ],
+  "resourceInformations": [
+    {
+      "resourceId": 0,
+      "c_low": 2,
+      "c_high": 2,
+      "isGlobalResource": "false",
+      "accessTasks": [
+        3
+      ]
+    },
+    {
+      "resourceId": 1,
+      "c_low": 2,
+      "c_high": 2,
+      "isGlobalResource": "false",
+      "accessTasks": [
+        3
+      ]
+    }
+  ],
+  "msrpSchedulable": true,
+  "mrspSchedulable": true,
+  "pwlpSchedulable": true,
+  "dynamicSchedulable": true,
+  "taskReleaseTimes": {
+    "2": [
+      0,
+      1
+    ],
+    "6": [
+      2
+    ],
+    "11": [
+      3
+    ]
+  },
+  "msrpTotalInformation": {
+    "criticalitySwitchTime": -1,
+    "cpuGanttInformations": [
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 28
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 28,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "completion",
+            "eventTime": 28,
+            "resourceId": -1
+          }
+        ]
+      },
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 13
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "state": "normal-execution",
+            "startTime": 13,
+            "endTime": 17
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 17,
+            "endTime": 25
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 25,
+            "endTime": 27
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 27,
+            "endTime": 56
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 56,
+            "endTime": 58
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 58,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "completion",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "switch-task",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "completion",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "switch-task",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 25,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 27,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 56,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 58,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "completion",
+            "eventTime": 66,
+            "resourceId": -1
+          }
+        ]
+      }
+    ],
+    "taskGanttInformations": [
+      {
+        "staticPid": 0,
+        "dynamicPid": 0,
+        "runningCPUCore": 0,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 28
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "completion",
+              "eventTime": 28,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 1,
+        "dynamicPid": 1,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 13
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "completion",
+              "eventTime": 13,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 2,
+        "dynamicPid": 2,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "state": "normal-execution",
+              "startTime": 13,
+              "endTime": 17
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "release",
+              "eventTime": 6,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "completion",
+              "eventTime": 17,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 3,
+        "dynamicPid": 3,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 17,
+              "endTime": 25
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 25,
+              "endTime": 27
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 27,
+              "endTime": 56
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 56,
+              "endTime": 58
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 58,
+              "endTime": 66
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "release",
+              "eventTime": 11,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 25,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 27,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 56,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 58,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "completion",
+              "eventTime": 66,
+              "resourceId": -1
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "mrspTotalInformation": {
+    "criticalitySwitchTime": -1,
+    "cpuGanttInformations": [
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 28
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 28,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "completion",
+            "eventTime": 28,
+            "resourceId": -1
+          }
+        ]
+      },
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 13
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "state": "normal-execution",
+            "startTime": 13,
+            "endTime": 17
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 17,
+            "endTime": 25
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 25,
+            "endTime": 27
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 27,
+            "endTime": 56
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 56,
+            "endTime": 58
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 58,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "completion",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "switch-task",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "completion",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "switch-task",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 25,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 27,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 56,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 58,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "completion",
+            "eventTime": 66,
+            "resourceId": -1
+          }
+        ]
+      }
+    ],
+    "taskGanttInformations": [
+      {
+        "staticPid": 0,
+        "dynamicPid": 0,
+        "runningCPUCore": 0,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 28
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "completion",
+              "eventTime": 28,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 1,
+        "dynamicPid": 1,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 13
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "completion",
+              "eventTime": 13,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 2,
+        "dynamicPid": 2,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "state": "blocked",
+              "startTime": 6,
+              "endTime": 13
+            },
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "state": "normal-execution",
+              "startTime": 13,
+              "endTime": 17
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "release",
+              "eventTime": 6,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "completion",
+              "eventTime": 17,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 3,
+        "dynamicPid": 3,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "blocked",
+              "startTime": 11,
+              "endTime": 17
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 17,
+              "endTime": 25
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 25,
+              "endTime": 27
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 27,
+              "endTime": 56
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 56,
+              "endTime": 58
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 58,
+              "endTime": 66
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "release",
+              "eventTime": 11,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 25,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 27,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 56,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 58,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "completion",
+              "eventTime": 66,
+              "resourceId": -1
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "pwlpTotalInformation": {
+    "criticalitySwitchTime": -1,
+    "cpuGanttInformations": [
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 28
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 28,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "completion",
+            "eventTime": 28,
+            "resourceId": -1
+          }
+        ]
+      },
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 13
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "state": "normal-execution",
+            "startTime": 13,
+            "endTime": 17
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 17,
+            "endTime": 25
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 25,
+            "endTime": 27
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 27,
+            "endTime": 56
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 56,
+            "endTime": 58
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 58,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "completion",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "switch-task",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "completion",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "switch-task",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 25,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 27,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 56,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 58,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "completion",
+            "eventTime": 66,
+            "resourceId": -1
+          }
+        ]
+      }
+    ],
+    "taskGanttInformations": [
+      {
+        "staticPid": 0,
+        "dynamicPid": 0,
+        "runningCPUCore": 0,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 28
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "completion",
+              "eventTime": 28,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 1,
+        "dynamicPid": 1,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 13
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "completion",
+              "eventTime": 13,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 2,
+        "dynamicPid": 2,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "state": "normal-execution",
+              "startTime": 13,
+              "endTime": 17
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "release",
+              "eventTime": 6,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "completion",
+              "eventTime": 17,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 3,
+        "dynamicPid": 3,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 17,
+              "endTime": 25
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 25,
+              "endTime": 27
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 27,
+              "endTime": 56
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 56,
+              "endTime": 58
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 58,
+              "endTime": 66
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "release",
+              "eventTime": 11,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 25,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 27,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 56,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 58,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "completion",
+              "eventTime": 66,
+              "resourceId": -1
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "dynamicTotalInformation": {
+    "criticalitySwitchTime": -1,
+    "cpuGanttInformations": [
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 28
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 28,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 0,
+            "dynamicPid": 0,
+            "event": "completion",
+            "eventTime": 28,
+            "resourceId": -1
+          }
+        ]
+      },
+      {
+        "timeAxisLength": 66,
+        "eventInformations": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "state": "normal-execution",
+            "startTime": 2,
+            "endTime": 13
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "state": "normal-execution",
+            "startTime": 13,
+            "endTime": 17
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 17,
+            "endTime": 25
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 25,
+            "endTime": 27
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 27,
+            "endTime": 56
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "access-resource",
+            "startTime": 56,
+            "endTime": 58
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "state": "normal-execution",
+            "startTime": 58,
+            "endTime": 66
+          },
+          {
+            "staticPid": -1,
+            "dynamicPid": -1,
+            "state": "spare",
+            "startTime": 66,
+            "endTime": -1
+          }
+        ],
+        "eventTimePoints": [
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "switch-task",
+            "eventTime": 2,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 1,
+            "dynamicPid": 1,
+            "event": "completion",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "switch-task",
+            "eventTime": 13,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 2,
+            "dynamicPid": 2,
+            "event": "completion",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "switch-task",
+            "eventTime": 17,
+            "resourceId": -1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 25,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 27,
+            "resourceId": 0
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "locked",
+            "eventTime": 56,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "unlocked",
+            "eventTime": 58,
+            "resourceId": 1
+          },
+          {
+            "staticPid": 3,
+            "dynamicPid": 3,
+            "event": "completion",
+            "eventTime": 66,
+            "resourceId": -1
+          }
+        ]
+      }
+    ],
+    "taskGanttInformations": [
+      {
+        "staticPid": 0,
+        "dynamicPid": 0,
+        "runningCPUCore": 0,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 28
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 0,
+              "dynamicPid": 0,
+              "event": "completion",
+              "eventTime": 28,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 1,
+        "dynamicPid": 1,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "state": "normal-execution",
+              "startTime": 2,
+              "endTime": 13
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "release",
+              "eventTime": 2,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 1,
+              "dynamicPid": 1,
+              "event": "completion",
+              "eventTime": 13,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 2,
+        "dynamicPid": 2,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "state": "normal-execution",
+              "startTime": 13,
+              "endTime": 17
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "release",
+              "eventTime": 6,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 2,
+              "dynamicPid": 2,
+              "event": "completion",
+              "eventTime": 17,
+              "resourceId": -1
+            }
+          ]
+        }
+      },
+      {
+        "staticPid": 3,
+        "dynamicPid": 3,
+        "runningCPUCore": 1,
+        "taskGanttInformation": {
+          "timeAxisLength": 66,
+          "eventInformations": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 17,
+              "endTime": 25
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 25,
+              "endTime": 27
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 27,
+              "endTime": 56
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "access-resource",
+              "startTime": 56,
+              "endTime": 58
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "state": "normal-execution",
+              "startTime": 58,
+              "endTime": 66
+            }
+          ],
+          "eventTimePoints": [
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "release",
+              "eventTime": 11,
+              "resourceId": -1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 25,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 27,
+              "resourceId": 0
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "locked",
+              "eventTime": 56,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "unlocked",
+              "eventTime": 58,
+              "resourceId": 1
+            },
+            {
+              "staticPid": 3,
+              "dynamicPid": 3,
+              "event": "completion",
+              "eventTime": 66,
+              "resourceId": -1
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
