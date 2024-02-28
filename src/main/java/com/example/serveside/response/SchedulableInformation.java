@@ -85,9 +85,9 @@ public class SchedulableInformation
     {
         return this.mrspSchedulable;
     }
-    public void setPWLPSchedulable(Boolean _PWLPSchedulable) { this.pwlpSchedulable = _PWLPSchedulable; }
+    public void setPwlpSchedulable(Boolean _PWLPSchedulable) { this.pwlpSchedulable = _PWLPSchedulable; }
 
-    public Boolean getPWLPSchedulable() { return this.pwlpSchedulable; }
+    public Boolean getPwlpSchedulable() { return this.pwlpSchedulable; }
 
     public void setTaskInformations(List<TaskInformation> _taskInformations) { this.taskInformations = _taskInformations; }
 
