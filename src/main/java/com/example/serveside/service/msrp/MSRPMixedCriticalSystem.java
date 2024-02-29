@@ -896,6 +896,15 @@ public class MSRPMixedCriticalSystem {
             waitingTasks.sort((task1, task2) -> -Integer.compare(task1.basicPCB.priorities.peek(), task2.basicPCB.priorities.peek()));
 
             com.example.serveside.service.msrp.ProcedureControlBlock waitingTask = waitingTasks.get(0);
+            int waitingTaskIndex = 0;
+            for (int j = 1; j < waitingTasks.size(); ++j) {
+                if (waitingTasks.get(j).basicPCB.priorities.peek() == waitingTask.basicPCB.priorities.peek()) {
+                    if (waitingTasks.get(j).basicPCB.elapsedTime > waitingTask.basicPCB.elapsedTime) {
+                        waitingTask = waitingTasks.get(j);
+                        waitingTaskIndex = j;
+                    }
+                }
+            }
 
             // 1. CPU 空闲
             if (runningTask == null)
@@ -906,7 +915,7 @@ public class MSRPMixedCriticalSystem {
                 // 任务状态发生变化: 恢复 waitingTask 以前的状态 / waitingTask 开始执行
                 ChangeTaskState(waitingTask, "");
                 // 需要将 waitingTask 从 waitingTasks 中移出来
-                waitingTasks.remove(0);
+                waitingTasks.remove(waitingTaskIndex);
 
                 // cpu 甘特图发生变化: 运行的任务发生变化(state 根据任务自身的状态来决定)
                 ChangeCpuTaskState(i, waitingTask, "");
@@ -934,7 +943,7 @@ public class MSRPMixedCriticalSystem {
                 waitingTasksPerCore.get(runningTask.basicPCB.baseRunningCpuCore).add(runningTask);
 
                 // 需要将 waitingTask 从 waitingTasks 中移出来
-                waitingTasks.remove(0);
+                waitingTasks.remove(waitingTaskIndex);
 
                 // runningTask 的状态也需要发生变化：blocked
                 ChangeTaskState(runningTask, "blocked");
