@@ -1122,6 +1122,10 @@ public class MrsPMixedCriticalSystem {
                 {
                     com.example.serveside.service.mrsp.ProcedureControlBlock helpTask = getHelpTask(waitingTasks, runningTask.basicPCB.accessResourceIndex.get(runningTask.basicPCB.requestResourceTh));
                     helpTask.isHelp = false;
+
+                    // 恢复其原先设置
+                    runningTask.immigrateRunningCpuCore = -1;
+                    runningTask.basicPCB.priorities.pop();
                 }
             }
         }
