@@ -910,6 +910,12 @@ public class PWLPMixedCriticalSystem {
                             ChangeTaskState(_waitingTask, "blocked");
                         }
                     }
+
+                    // 任务甘特图中显示撤销申请
+                    TaskEventTimePointsRecords.get(runningTask.basicPCB.dynamicTaskId).add(new EventTimePoint(runningTask.basicPCB.staticTaskId, runningTask.basicPCB.dynamicTaskId, "withdraw", systemClock, waitingResource.basicResource.id));
+
+                    // cpu 甘特图中显示撤销申请
+                    cpuEventTimePointRecords.get(i).add(new EventTimePoint(waitingTask.basicPCB.staticTaskId, waitingTask.basicPCB.dynamicTaskId, "withdraw", systemClock, waitingResource.basicResource.id));
                 }
 
                 // 需要将 waitingTask 从 waitingTasks 中移出来
