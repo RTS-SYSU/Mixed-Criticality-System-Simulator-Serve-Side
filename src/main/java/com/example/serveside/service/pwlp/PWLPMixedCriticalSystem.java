@@ -466,15 +466,26 @@ public class PWLPMixedCriticalSystem {
         {
             for (Integer releaseTaskId : itemTaskReleaseTimes.getValue())
             {
-                // 系统模式处于高关键级下，低关键的任务直接不发布了
-                if (totalTasks.get(releaseTaskId).basicPCB.criticality < criticality_indicator){
-                    ++taskFinishTimes[totalTasks.get(releaseTaskId).basicPCB.staticTaskId];
-                    continue;
-                }
-
                 // 初始化任务的基本信息
                 com.example.serveside.service.pwlp.ProcedureControlBlock releaseTask = new com.example.serveside.service.pwlp.ProcedureControlBlock(totalTasks.get(releaseTaskId));
                 releaseTask.basicPCB.dynamicTaskId = releaseTaskNum++;
+                // 系统模式处于高关键级下，低关键的任务直接不发布了
+                if (totalTasks.get(releaseTaskId).basicPCB.criticality < criticality_indicator){
+                    ++taskFinishTimes[totalTasks.get(releaseTaskId).basicPCB.staticTaskId];
+
+                    // 记录一下发布的任务的基本信息
+                    releaseTaskInformations.add(new com.example.serveside.response.TaskInformation(releaseTask, systemClock));
+                    // 记录一下任务发布的时间点
+                    TaskEventTimePointsRecords.add(new ArrayList<>());
+                    TaskEventTimePointsRecords.get(releaseTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.basicPCB.staticTaskId, releaseTask.basicPCB.dynamicTaskId, "release", systemClock, -1));
+                    TaskEventTimePointsRecords.get(releaseTask.basicPCB.dynamicTaskId).add(new com.example.serveside.response.EventTimePoint(releaseTask.basicPCB.staticTaskId, releaseTask.basicPCB.dynamicTaskId, "killed", systemClock, -1));
+                    // 创建一个新的 taskEventInformation 来保存任务的运行过程
+                    TaskEventInformationRecords.add(new ArrayList<>());
+
+                    continue;
+                }
+
+
                 waitingTasksPerCore.get(totalTasks.get(releaseTaskId).basicPCB.baseRunningCpuCore).add(releaseTask);
 
                 // 记录一下发布的任务的基本信息
