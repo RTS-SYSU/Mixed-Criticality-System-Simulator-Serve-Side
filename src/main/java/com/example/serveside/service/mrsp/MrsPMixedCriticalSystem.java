@@ -457,7 +457,7 @@ public class MrsPMixedCriticalSystem {
                         ProcedureControlBlock immigrateTask = null;
                         for (ArrayList<ProcedureControlBlock> tmpWaitingTasks : waitingTasksPerCore) {
                             for (ProcedureControlBlock tmpWaitingTask : tmpWaitingTasks) {
-                                if (tmpWaitingTask.basicPCB.isAccessGlobalResource && tmpWaitingTask.basicPCB.accessResourceIndex.get(tmpWaitingTask.basicPCB.requestResourceTh) == accquireResource.basicResource.id) {
+                                if (tmpWaitingTask != null && tmpWaitingTask.basicPCB.isAccessGlobalResource && tmpWaitingTask.basicPCB.accessResourceIndex.get(tmpWaitingTask.basicPCB.requestResourceTh) == accquireResource.basicResource.id) {
                                     immigrateTask = tmpWaitingTask;
                                     break;
                                 }
