@@ -584,24 +584,29 @@ public class SimpleSystemGenerator {
     public ArrayList<BasicPCB> testGenerateTask() {
         ArrayList<BasicPCB> tasks = new ArrayList<>();
 
-        BasicPCB  task = new BasicPCB(1, 60, 0.1, 0);
+        BasicPCB  task = new BasicPCB(1, 70, 0.1, 0);
         task.criticality = 0;
-        task.totalNeededTime = 6;
+        task.totalNeededTime = 7;
         tasks.add(task);
 
-        task = new BasicPCB(2, 60, 0.1, 1);
+        task = new BasicPCB(2, 70, 0.1, 1);
         task.criticality = 0;
-        task.totalNeededTime = 6;
+        task.totalNeededTime = 7;
         tasks.add(task);
 
-        task = new BasicPCB(3, 60, 0.1, 2);
+        task = new BasicPCB(3, 50, 0.1, 2);
         task.criticality = 0;
-        task.totalNeededTime = 6;
+        task.totalNeededTime = 5;
         tasks.add(task);
 
-        task = new BasicPCB(4, 60, 0.1, 3);
+        task = new BasicPCB(4, 110, 0.1, 3);
         task.criticality = 1;
-        task.totalNeededTime = 6;
+        task.totalNeededTime = 11;
+        tasks.add(task);
+
+        task = new BasicPCB(5, 30, 0.1, 4);
+        task.criticality = 1;
+        task.totalNeededTime = 3;
         tasks.add(task);
 
         return tasks;
@@ -609,8 +614,8 @@ public class SimpleSystemGenerator {
 
     public ArrayList<BasicResource> testGenerateResources() {
         ArrayList<BasicResource> resources = new ArrayList<>();
-        resources.add(new BasicResource(0, 4, 5));
-        resources.add(new BasicResource(1, 3, 4));
+        resources.add(new BasicResource(0, 3, 4));
+        resources.add(new BasicResource(1, 5, 6));
         return resources;
     }
 
@@ -619,12 +624,12 @@ public class SimpleSystemGenerator {
 
         // task 0
         taskTmp = tasks.get(0);
-        taskTmp.accessResourceIndex.add(0);
+        taskTmp.accessResourceIndex.add(1);
         taskTmp.resourceAccessTime.add(1);
 
         // task 1
         taskTmp = tasks.get(1);
-        taskTmp.accessResourceIndex.add(0);
+        taskTmp.accessResourceIndex.add(1);
         taskTmp.resourceAccessTime.add(1);
 
         // task 2
@@ -637,24 +642,33 @@ public class SimpleSystemGenerator {
         taskTmp.accessResourceIndex.add(0);
         taskTmp.resourceAccessTime.add(1);
 
+        taskTmp.accessResourceIndex.add(1);
+        taskTmp.resourceAccessTime.add(5);
+
+
 
 
         // 分配 CPU
         ArrayList<ArrayList<BasicPCB>> generatedTaskSets = new ArrayList<>();
         ArrayList<BasicPCB> cpu0 = new ArrayList<>();
         tasks.get(0).baseRunningCpuCore = 0;
-        tasks.get(2).baseRunningCpuCore = 0;
         cpu0.add(tasks.get(0));
-        cpu0.add(tasks.get(2));
 
         ArrayList<BasicPCB> cpu1 = new ArrayList<>();
         tasks.get(1).baseRunningCpuCore = 1;
-        tasks.get(3).baseRunningCpuCore = 1;
         cpu1.add(tasks.get(1));
-        cpu1.add(tasks.get(3));
+
+        ArrayList<BasicPCB> cpu2 = new ArrayList<>();
+        tasks.get(2).baseRunningCpuCore = 2;
+        tasks.get(3).baseRunningCpuCore = 2;
+        tasks.get(4).baseRunningCpuCore = 2;
+        cpu2.add(tasks.get(2));
+        cpu2.add(tasks.get(3));
+        cpu2.add(tasks.get(4));
 
         generatedTaskSets.add(cpu0);
         generatedTaskSets.add(cpu1);
+        generatedTaskSets.add(cpu2);
 
         Random ran = new Random();
         // generate WCCT for every task
@@ -720,7 +734,7 @@ public class SimpleSystemGenerator {
     public TreeMap<Integer, ArrayList<Integer>> testGenerateTaskReleaseTime(ArrayList<BasicPCB> totalTasks) {
         TreeMap<Integer, ArrayList<Integer>> taskReleaseTimes = new TreeMap<>();
         taskReleaseTimes.put(1, new ArrayList<>(Arrays.asList(0, 1)));
-        taskReleaseTimes.put(3, new ArrayList<>(Arrays.asList(2, 3)));
+        taskReleaseTimes.put(3, new ArrayList<>(Arrays.asList(2, 3, 4)));
         return taskReleaseTimes;
     }
 

@@ -252,6 +252,7 @@ public class MrsPMixedCriticalSystem {
         taskFinishTimes = new int[totalTasks.size()];
 
         // CPU 上正在执行哪些任务
+        TOTAL_CPU_CORE_NUM = 3;
         runningTaskPerCore = new ArrayList<>(TOTAL_CPU_CORE_NUM);
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
             runningTaskPerCore.add(null);
@@ -423,7 +424,7 @@ public class MrsPMixedCriticalSystem {
                     // 判断能不能进行迁移
                     boolean isRunning = false;
                     for (ProcedureControlBlock tmpRunningTask : runningTaskPerCore) {
-                        if (tmpRunningTask.basicPCB.isAccessGlobalResource && tmpRunningTask.basicPCB.accessResourceIndex.get(tmpRunningTask.basicPCB.requestResourceTh) == accquireResource.basicResource.id) {
+                        if (tmpRunningTask != null && tmpRunningTask.basicPCB.isAccessGlobalResource && tmpRunningTask.basicPCB.accessResourceIndex.get(tmpRunningTask.basicPCB.requestResourceTh) == accquireResource.basicResource.id) {
                             isRunning = true;
                             break;
                         }
