@@ -584,24 +584,24 @@ public class SimpleSystemGenerator {
     public ArrayList<BasicPCB> testGenerateTask() {
         ArrayList<BasicPCB> tasks = new ArrayList<>();
 
-        BasicPCB  task = new BasicPCB(1, 50, 0.1, 0);
-        task.criticality = 1;
-        task.totalNeededTime = 5;
-        tasks.add(task);
-
-        task = new BasicPCB(2, 50, 0.1, 1);
+        BasicPCB  task = new BasicPCB(1, 60, 0.1, 0);
         task.criticality = 0;
-        task.totalNeededTime = 5;
+        task.totalNeededTime = 6;
         tasks.add(task);
 
-        task = new BasicPCB(3, 50, 0.1, 2);
+        task = new BasicPCB(2, 60, 0.1, 1);
         task.criticality = 0;
-        task.totalNeededTime = 5;
+        task.totalNeededTime = 6;
         tasks.add(task);
 
-        task = new BasicPCB(4, 50, 0.1, 3);
+        task = new BasicPCB(3, 60, 0.1, 2);
+        task.criticality = 0;
+        task.totalNeededTime = 6;
+        tasks.add(task);
+
+        task = new BasicPCB(4, 60, 0.1, 3);
         task.criticality = 1;
-        task.totalNeededTime = 5;
+        task.totalNeededTime = 6;
         tasks.add(task);
 
         return tasks;
@@ -609,7 +609,7 @@ public class SimpleSystemGenerator {
 
     public ArrayList<BasicResource> testGenerateResources() {
         ArrayList<BasicResource> resources = new ArrayList<>();
-        resources.add(new BasicResource(0, 3, 4));
+        resources.add(new BasicResource(0, 4, 5));
         resources.add(new BasicResource(1, 3, 4));
         return resources;
     }
@@ -624,6 +624,11 @@ public class SimpleSystemGenerator {
 
         // task 1
         taskTmp = tasks.get(1);
+        taskTmp.accessResourceIndex.add(0);
+        taskTmp.resourceAccessTime.add(1);
+
+        // task 2
+        taskTmp = tasks.get(2);
         taskTmp.accessResourceIndex.add(0);
         taskTmp.resourceAccessTime.add(1);
 
