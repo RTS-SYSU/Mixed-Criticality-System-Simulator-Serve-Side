@@ -1061,6 +1061,8 @@ public class MrsPWorstCase {
             }
         }
 
+        AdjustTotalReleaseTime();
+
         // 现在的话依次遍历每一个 recordTaskReleaseTimesHashMap 以此来记录在哪些时间段发布哪些任务
         for (Map.Entry<Integer, ArrayList<Integer>> entry : recordTaskReleaseTimesHashMap.entrySet()) {
             ArrayList<Integer> taskReleaseTimes = entry.getValue();
@@ -1077,5 +1079,29 @@ public class MrsPWorstCase {
 
         // 需要按 key 值大小对 recordPoints 进行排序 :
         return recordPoints;
+    }
+
+    /**
+     * 提前所有任务的发布时间，避免出现时间段冗余
+     */
+    public void AdjustTotalReleaseTime() {
+        // 1. 找到最早发布的任务的发布时间
+        int minimalReleaseTime = Integer.MAX_VALUE;
+        for (Map.Entry<Integer, ArrayList<Integer>> entry : recordTaskReleaseTimesHashMap.entrySet()) {
+            ArrayList<Integer> taskReleaseTimes = entry.getValue();
+            for (Integer taskReleaseTime : taskReleaseTimes) {
+                minimalReleaseTime = Math.min(minimalReleaseTime, taskReleaseTimes.get(0));
+            }
+        }
+
+        --minimalReleaseTime;
+
+        // 2. 调整任务发布时间
+        for (Map.Entry<Integer, ArrayList<Integer>> entry : recordTaskReleaseTimesHashMap.entrySet()) {
+            ArrayList<Integer> taskReleaseTimes = entry.getValue();
+            for (int i = 0; i < taskReleaseTimes.size(); ++i) {
+                taskReleaseTimes.set(i, taskReleaseTimes.get(i)-minimalReleaseTime);
+            }
+        }
     }
 }

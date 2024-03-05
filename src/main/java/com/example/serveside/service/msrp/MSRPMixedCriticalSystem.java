@@ -250,7 +250,6 @@ public class MSRPMixedCriticalSystem {
         taskFinishTimes = new int[totalTasks.size()];
 
         // CPU 上正在执行哪些任务
-        TOTAL_CPU_CORE_NUM = 3;
         runningTaskPerCore = new ArrayList<>(TOTAL_CPU_CORE_NUM);
         for (int i = 0; i < TOTAL_CPU_CORE_NUM; ++i)
             runningTaskPerCore.add(null);
