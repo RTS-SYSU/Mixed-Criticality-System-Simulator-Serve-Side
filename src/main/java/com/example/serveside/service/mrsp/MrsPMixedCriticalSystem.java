@@ -420,48 +420,42 @@ public class MrsPMixedCriticalSystem {
                         }
                     }
 
-                    // 判断能不能进行迁移
-                    boolean isRunning = false;
-                    for (ProcedureControlBlock tmpRunningTask : runningTaskPerCore) {
-                        if (tmpRunningTask != null && tmpRunningTask.basicPCB.isAccessGlobalResource && tmpRunningTask.basicPCB.accessResourceIndex.get(tmpRunningTask.basicPCB.requestResourceTh) == accquireResource.basicResource.id) {
-                            isRunning = true;
-                            break;
-                        }
-                    }
-                    if (!isRunning) {
-                        ProcedureControlBlock immigrateTask = null;
-                        for (ArrayList<ProcedureControlBlock> tmpWaitingTasks : waitingTasksPerCore) {
-                            for (ProcedureControlBlock tmpWaitingTask : tmpWaitingTasks) {
-                                if (tmpWaitingTask.basicPCB.isAccessGlobalResource && tmpWaitingTask.basicPCB.accessResourceIndex.get(tmpWaitingTask.basicPCB.requestResourceTh) == accquireResource.basicResource.id) {
-                                    immigrateTask = tmpWaitingTask;
-                                    break;
-                                }
+                    // 判断能不能提供迁移
+                    ProcedureControlBlock immigrateTask = null;
+                    for (ArrayList<ProcedureControlBlock> tmpWaitingTasks : waitingTasksPerCore) {
+                        for (ProcedureControlBlock tmpWaitingTask : tmpWaitingTasks) {
+                            if (tmpWaitingTask.basicPCB.isAccessGlobalResource && tmpWaitingTask.basicPCB.accessResourceIndex.get(tmpWaitingTask.basicPCB.requestResourceTh) == accquireResource.basicResource.id) {
+                                immigrateTask = tmpWaitingTask;
+                                break;
                             }
                         }
-                        ProcedureControlBlock helpTask = runningTask;
-                        // 切换状态
-                        ChangeTaskState(runningTask, "help-direct-spinning");
-                        runningTask.isHelp = true;
-
-                        ChangeTaskState(immigrateTask, "help-access-resource");
-
-                        // helpTask 放回对应 cpu 核上的 waitingTasksPerCore, immigrateTask 放在 helpTask 对应的 cpu 核上执行
-                        waitingTasksPerCore.get(runningTask.basicPCB.baseRunningCpuCore).add(runningTask);
-
-                        // 任务迁移
-                        immigrateTask.immigrateRunningCpuCore = helpTask.basicPCB.baseRunningCpuCore;
-                        runningTaskPerCore.set(helpTask.basicPCB.baseRunningCpuCore, immigrateTask);
-                        immigrateTask.basicPCB.priorities.push(helpTask.basicPCB.priorities.peek());
-
-                        // immigrate cpu core 上运行的任务发生变化：help-task --> access-resource-task
-                        // immigrate cpu core 上的甘特图显示 switch-task
-                        ChangeCpuTaskState(immigrateTask.immigrateRunningCpuCore, immigrateTask, "help-access-resource");
-                        cpuEventTimePointRecords.get(immigrateTask.immigrateRunningCpuCore).add(new EventTimePoint(immigrateTask.basicPCB.staticTaskId, immigrateTask.basicPCB.dynamicTaskId, "switch-task", systemClock, accquireResource.basicResource.id));
-
-                        // 将 preemptedATask 从队列当中删除
-                        waitingTasksPerCore.get(immigrateTask.basicPCB.baseRunningCpuCore).remove(immigrateTask);
+                    }
+                    if (immigrateTask == null) {
+                        continue;
                     }
 
+                    ProcedureControlBlock helpTask = runningTask;
+                    // 切换状态
+                    ChangeTaskState(runningTask, "help-direct-spinning");
+                    runningTask.isHelp = true;
+
+                    ChangeTaskState(immigrateTask, "help-access-resource");
+
+                    // helpTask 放回对应 cpu 核上的 waitingTasksPerCore, immigrateTask 放在 helpTask 对应的 cpu 核上执行
+                    waitingTasksPerCore.get(runningTask.basicPCB.baseRunningCpuCore).add(runningTask);
+
+                    // 任务迁移
+                    immigrateTask.immigrateRunningCpuCore = helpTask.basicPCB.baseRunningCpuCore;
+                    runningTaskPerCore.set(helpTask.basicPCB.baseRunningCpuCore, immigrateTask);
+                    immigrateTask.basicPCB.priorities.push(helpTask.basicPCB.priorities.peek());
+
+                    // immigrate cpu core 上运行的任务发生变化：help-task --> access-resource-task
+                    // immigrate cpu core 上的甘特图显示 switch-task
+                    ChangeCpuTaskState(immigrateTask.immigrateRunningCpuCore, immigrateTask, "help-access-resource");
+                    cpuEventTimePointRecords.get(immigrateTask.immigrateRunningCpuCore).add(new EventTimePoint(immigrateTask.basicPCB.staticTaskId, immigrateTask.basicPCB.dynamicTaskId, "switch-task", systemClock, accquireResource.basicResource.id));
+
+                    // 将 preemptedATask 从队列当中删除
+                    waitingTasksPerCore.get(immigrateTask.basicPCB.baseRunningCpuCore).remove(immigrateTask);
                 }
                 // accquireResource 没有被占据，空闲的
                 else {
